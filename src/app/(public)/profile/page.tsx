@@ -110,7 +110,12 @@ function ProfileContent() {
             const promises = [
                 updateUserProfile(user.uid, {
                     ...formData,
-                    isVerified: true // Assumption: Filling this form completes verification/onboarding phase
+                    // If RollNo, Class, or Section changed, revoke verification to force re-check
+                    isVerified: (
+                        profile?.rollNo === formData.rollNo &&
+                        profile?.class === formData.class &&
+                        profile?.section === formData.section
+                    )
                 })
             ];
 

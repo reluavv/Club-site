@@ -11,6 +11,8 @@ export interface Event {
     registrationStatus: "upcoming" | "open" | "closed"; // Logic status
     isFeedbackOpen: boolean;
     attendanceCode?: string; // If set, attendance is active
+    attendanceStatus?: 'upcoming' | 'active' | 'ended'; // Lifecycle
+    feedbackStatus?: 'upcoming' | 'active' | 'ended'; // Lifecycle
     avgRating?: number;
     feedbackCount?: number;
     minTeamSize?: number; // Default 1

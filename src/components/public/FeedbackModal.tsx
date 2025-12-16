@@ -68,7 +68,7 @@ export default function FeedbackModal({ eventId, userId, userName, onClose, onSu
             <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white z-10"><X size={20} /></button>
 
-                <div className="p-8">
+                <div className="p-8 pt-16">
                     <h2 className="text-2xl font-bold mb-2">Event Feedback</h2>
                     <p className="text-gray-400 text-sm mb-8">Please take a moment to rate your experience.</p>
 

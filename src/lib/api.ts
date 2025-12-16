@@ -5,7 +5,7 @@ export * from "@/types";
 export * from "@/services/common";
 export * from "@/services/admin";
 export * from "@/services/events";
-export * from "@/services/team";
+
 export * from "@/services/gallery";
 export * from "@/services/resources";
 
