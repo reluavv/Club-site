@@ -253,7 +253,7 @@ function ProfileContent() {
                                     value={formData.mobile}
                                     onChange={e => setFormData({ ...formData, mobile: e.target.value })}
                                     className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:border-blue-500 focus:outline-none"
-                                    placeholder="+91..."
+                                    placeholder="9876543210"
                                 />
                             </div>
                         </div>

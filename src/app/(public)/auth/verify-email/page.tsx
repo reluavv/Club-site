@@ -1,15 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { sendEmailVerification, reload } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Mail, RefreshCw, CheckCircle, ArrowRight } from "lucide-react";
 
 export default function VerifyEmailPage() {
+
+
     const router = useRouter();
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState<string | null>(null);
+
+    useEffect(() => {
+        const checkVerification = async () => {
+            if (auth.currentUser) {
+                setEmail(auth.currentUser.email);
+                await auth.currentUser.reload();
+                if (auth.currentUser.emailVerified) {
+                    router.push("/");
+                }
+            }
+        };
+        checkVerification();
+    }, [router]);
 
     const handleResend = async () => {
         if (!auth.currentUser) return;
@@ -55,7 +71,9 @@ export default function VerifyEmailPage() {
                 </div>
 
                 <h1 className="text-2xl font-bold text-white mb-2">Verify your Email</h1>
-                <p className="text-gray-400 mb-6">We&apos;ve sent a verification link to your email.</p>
+                <p className="text-gray-400 mb-6">
+                    We&apos;ve sent a verification link to <span className="text-white font-bold">{email}</span>.
+                </p>
                 <p className="text-sm text-gray-500 mb-4">Didn&apos;t receive it?</p>
 
                 <div className="space-y-4">

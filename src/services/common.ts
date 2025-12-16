@@ -1,5 +1,5 @@
 import { storage, db } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { addDoc, collection, Timestamp, query, orderBy, limit, getDocs, writeBatch } from "firebase/firestore";
 import { AuditLog } from "@/types"; // We will make sure this alias works or use relative path
 
@@ -30,6 +30,21 @@ export async function uploadImage(file: File, path: string, onProgress?: (progre
     } catch (error) {
         console.error("Error uploading image:", error);
         throw error;
+    }
+}
+
+export async function deleteFile(url: string | null | undefined): Promise<void> {
+    if (!url) return;
+
+    // Check if it's a Firebase Storage URL to prevent deleting Google Auth / external images
+    if (!url.includes("firebasestorage.googleapis.com")) return;
+
+    try {
+        const fileRef = ref(storage, url);
+        await deleteObject(fileRef);
+    } catch (error) {
+        console.warn("Failed to delete file:", url, error);
+        // Swallow error to prevent blocking main update flow
     }
 }
 

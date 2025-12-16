@@ -1,7 +1,17 @@
+"use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Linkedin, Instagram, MapPin, Mail } from "lucide-react";
 
 export default function Footer() {
+    const pathname = usePathname();
+    const isHidden = pathname === "/" ||
+        pathname.startsWith("/auth/") ||
+        pathname.startsWith("/admin") ||
+        pathname.startsWith("/profile");
+
+    if (isHidden) return null;
+
     return (
         <footer className="relative z-10 bg-black/80 backdrop-blur-md border-t border-white/10 pt-16 pb-8 mt-auto">
             <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">

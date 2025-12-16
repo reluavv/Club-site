@@ -4,9 +4,9 @@ import { ChevronDown } from "lucide-react";
 
 export default function Home() {
     return (
-        <div className="flex flex-col items-center justify-start min-h-screen pt-36 md:pt-40 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center relative z-20">
+        <div className="flex flex-col items-center justify-start min-h-screen pt-32 md:pt-36 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center relative z-20">
             {/* Hero Image */}
-            <div className="relative w-full max-w-[280px] md:max-w-[600px] lg:max-w-[800px] aspect-[3/1] mb-8 animate-[fadeIn_1s_ease-out]">
+            <div className="relative w-full max-w-[320px] md:max-w-[700px] lg:max-w-[900px] aspect-[3/1] mb-8 animate-[fadeIn_1s_ease-out]">
                 <Image
                     src="/images/light_text_logo.png"
                     alt="ReLU Logo"
@@ -17,7 +17,7 @@ export default function Home() {
             </div>
 
             {/* Subtitle */}
-            <p className="text-base md:text-3xl text-gray-300 font-light tracking-[0.2em] uppercase mb-12 animate-[slideUp_1s_ease-out_0.3s_both] drop-shadow-lg">
+            <p className="text-lg md:text-3xl lg:text-4xl text-gray-300 font-light tracking-[0.2em] uppercase mb-12 animate-[slideUp_1s_ease-out_0.3s_both] drop-shadow-lg">
                 Refining Logic and Unleashing AI
             </p>
 
@@ -37,15 +37,10 @@ export default function Home() {
                 </Link>
                 <Link
                     href="/auth/signup"
-                    className="px-6 py-3 text-base md:px-8 md:py-4 md:text-lg bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-full font-bold shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)] transform hover:scale-105 transition-all duration-300 border border-white/20 backdrop-blur-sm"
+                    className="px-6 py-3 text-base md:px-8 md:py-4 md:text-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-full font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transform hover:scale-105 transition-all duration-300 border border-white/20 backdrop-blur-sm"
                 >
                     Join the Family
                 </Link>
-            </div>
-
-            {/* Decorative Elements */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-50">
-                <ChevronDown className="text-white w-8 h-8" />
             </div>
         </div>
     );
