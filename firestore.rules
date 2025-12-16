@@ -1,0 +1,122 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Check if the user has a specific role in their Custom Claims OR in their user document
+    // Note: Ideally, for performance and security, roles should be set as Custom Claims.
+    // However, since this app reads roles from the 'users' collection, we will check that document.
+    // WARNING: This costs 1 extra read per operation unless you use Custom Claims.
+    function hasRole(roleList) {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isAuthenticated() && (userDoc.data.role in roleList);
+    }
+    
+    // Exact role match
+    function isRole(role) {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isAuthenticated() && userDoc.data.role == role;
+    }
+
+    function isAdmin() {
+      return hasRole(['admin', 'super_admin', 'President', 'VP_AIML', 'VP_DSA', 'CTO', 'AdminHead']); 
+    }
+    
+    function isSuperAdmin() {
+      return isRole('super_admin');
+    }
+
+    function isCTO() {
+      return isRole('CTO');
+    }
+
+    // --- Collection Rules ---
+
+    // Users Collection
+    // - Users can read and update their own document.
+    // - Admins can read all profiles.
+    // - Admins can update roles (technically handled via special functions, but let's allow admin write for now to maintain existing admin flow)
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId); // Self-signup
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isSuperAdmin() || isCTO(); // Super Admin or CTO can delete users
+    }
+    
+    // Pending Registrations
+    match /pending_registrations/{userId} {
+       allow create: if isAuthenticated() && isOwner(userId);
+       allow read, delete: if isAdmin(); // Admin managing requests
+    }
+
+    // Public Content: Events, Gallery, Projects, Resources, Team
+    // - Public Read
+    // - Admin Write
+    match /events/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /gallery/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /projects/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /resources/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /team_core/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /team_mentors/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Messages (Contact Form)
+    // - Public Create (anyone can send a message)
+    // - Admin Read/Delete
+    // - NO Public Read
+    // - NO Public Update
+    match /messages/{document} {
+      allow create: if true; // Anyone can send a message
+      allow read, delete: if isAdmin();
+      allow update: if false; // Messages are immutable
+    }
+
+    // Audit Logs
+    // - App writes to this log.
+    // - Admins can read.
+    // - No one can delete/update.
+    match /audit_logs/{document} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated(); // Authenticated users (mostly admins) log their actions
+      allow update: if false;
+      allow delete: if isCTO(); // Only CTO can wipe audit logs (Nuclear option) 
+    }
+    
+    // "Doomsday" & "Underground" (Conceptual regions based on Folder structure)
+    // Since these are not collections but app routes, the data they access is likely protected above.
+    // If there were specific collections:
+    // match /secrets/{doc} { allow read: if isCTO(); } 
+  }
+}

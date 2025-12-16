@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Rules
+    match /{allPaths=**} {
+      // Allow public read
+      allow read: if true;
+      
+      // Allow write if Authenticated
+      // Relaxing content-type checks to allow Images, Videos, and PDFs (for resources)
+      // Enforcing 50MB limit instead of 5MB to support videos
+      allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
+      
+      // Allow delete if Authenticated
+      allow delete: if isAuthenticated();
+    }
+  }
+}
