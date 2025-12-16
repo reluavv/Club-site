@@ -37,9 +37,10 @@ export default function Footer() {
                         Quick Links
                     </h3>
                     <ul className="space-y-4">
-                        <FooterLink href="/" label="Home" />
                         <FooterLink href="/about" label="Team" />
+                        <FooterLink href="/events" label="Events" />
                         <FooterLink href="/gallery" label="Gallery" />
+                        <FooterLink href="/alumni" label="Alumni" />
                     </ul>
                 </div>
 

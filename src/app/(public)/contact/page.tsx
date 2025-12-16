@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { saveMessage } from "@/services/messages"; // Ensure this alias maps to src/services
-import { Mail, MapPin, Send, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, MapPin, Send, Loader2, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 export default function ContactPage() {
     const [formData, setFormData] = useState({
@@ -83,18 +83,14 @@ export default function ContactPage() {
                         <div className="p-8 rounded-3xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-white/10">
                             <h3 className="text-2xl font-bold text-white mb-4">Join the Community</h3>
                             <p className="text-gray-400 mb-6">
-                                Connect with hundreds of other developers, designers, and AI enthusiasts in our community.
+                                Be part of a growing network of student developers and innovators.
                             </p>
-                            <div className="flex -space-x-4">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="w-12 h-12 rounded-full border-2 border-black bg-gray-800 flex items-center justify-center text-xs text-gray-400">
-                                        User
-                                    </div>
-                                ))}
-                                <div className="w-12 h-12 rounded-full border-2 border-black bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
-                                    +500
-                                </div>
-                            </div>
+                            <a
+                                href="/auth/signup"
+                                className="inline-flex items-center gap-2 text-white font-bold bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors"
+                            >
+                                Get Started <ArrowRight size={16} />
+                            </a>
                         </div>
                     </div>
 

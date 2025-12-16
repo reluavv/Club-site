@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getGallery } from "@/lib/api";
+import { getGallery, getEvents } from "@/lib/api";
 import GalleryClient from "./GalleryClient";
 
 export const metadata: Metadata = {
@@ -10,6 +10,9 @@ export const metadata: Metadata = {
 export const revalidate = 0;
 
 export default async function GalleryPage() {
-    const images = await getGallery();
-    return <GalleryClient images={images} />;
+    const [images, events] = await Promise.all([
+        getGallery(),
+        getEvents()
+    ]);
+    return <GalleryClient images={images} events={events} />;
 }

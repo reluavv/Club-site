@@ -21,7 +21,7 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
         const q = query(collection(db, collectionName), limit(50));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
             setDocs(data);
             setLoading(false);
         }, (error) => {
