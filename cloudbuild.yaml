@@ -40,3 +40,6 @@ steps:
       - 'EMAIL_USER=$_EMAIL_USER,EMAIL_PASS=$_EMAIL_PASS'
 images:
   - 'gcr.io/$PROJECT_ID/relu-website'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
