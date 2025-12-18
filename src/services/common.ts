@@ -33,20 +33,32 @@ export async function uploadImage(file: File, path: string, onProgress?: (progre
     }
 }
 
-export async function deleteFile(url: string | null | undefined): Promise<void> {
+// Helper to extract storage path and delete file
+export async function deleteFileByUrl(url: string | undefined | null) {
     if (!url) return;
 
-    // Check if it's a Firebase Storage URL to prevent deleting Google Auth / external images
+    // Safety check: only delete files from our firebase storage
     if (!url.includes("firebasestorage.googleapis.com")) return;
 
     try {
+        // Create a reference from the HTTPS URL directly
+        // Firebase SDK handles parsing the URL to find the object location
         const fileRef = ref(storage, url);
         await deleteObject(fileRef);
-    } catch (error) {
-        console.warn("Failed to delete file:", url, error);
-        // Swallow error to prevent blocking main update flow
+        console.log(`Deleted file: ${url}`);
+    } catch (error: any) {
+        // Ignore "Object not found" errors (already deleted), throw others
+        if (error.code === 'storage/object-not-found') {
+            console.warn(`File not found (already deleted?): ${url}`);
+            return;
+        }
+        console.error("Error deleting file from storage:", error);
+        // We generally don't want to throw here to avoid blocking the main delete operation
     }
 }
+
+// Deprecated: Alias for backward compatibility if needed, or remove
+export const deleteFile = deleteFileByUrl;
 
 // --- Audit Logs ---
 

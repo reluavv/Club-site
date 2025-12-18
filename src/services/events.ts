@@ -1,6 +1,8 @@
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, addDoc, deleteDoc, updateDoc, query, onSnapshot } from "firebase/firestore";
 import { Event } from "@/types";
+import { deleteFileByUrl } from "./common";
+import { getEventGallery, deleteFromGallery } from "./gallery";
 
 // --- Events API ---
 
@@ -29,7 +31,31 @@ export async function createEvent(event: Omit<Event, "id">) {
 }
 
 export async function deleteEvent(id: string) {
-    await deleteDoc(doc(db, "events", id));
+    try {
+        // 1. Fetch Event to get image URL
+        const eventDocRef = doc(db, "events", id);
+        const eventSnap = await getDoc(eventDocRef);
+
+        if (!eventSnap.exists()) return;
+        const eventData = eventSnap.data() as Event;
+
+        // 2. Delete all Gallery items associated with this event
+        // We use deleteFromGallery because it now handles file deletion for each item
+        const galleryImages = await getEventGallery(id);
+        const galleryDeletePromises = galleryImages.map(img => deleteFromGallery(img.id));
+        await Promise.all(galleryDeletePromises);
+
+        // 3. Delete Event Cover Image
+        if (eventData.image) {
+            await deleteFileByUrl(eventData.image);
+        }
+
+        // 4. Delete Event Document
+        await deleteDoc(eventDocRef);
+    } catch (error) {
+        console.error("Error deleting event:", error);
+        throw error;
+    }
 }
 
 export async function getEvent(id: string): Promise<Event | null> {

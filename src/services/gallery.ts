@@ -1,6 +1,7 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, Timestamp, where, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, orderBy, Timestamp, where, onSnapshot } from "firebase/firestore";
 import { GalleryImage } from "@/types";
+import { deleteFileByUrl } from "./common";
 
 // --- Gallery API ---
 
@@ -40,7 +41,20 @@ export async function addToGallery(image: Omit<GalleryImage, "id" | "timestamp">
 }
 
 export async function deleteFromGallery(id: string) {
-    await deleteDoc(doc(db, "gallery", id));
+    try {
+        const docRef = doc(db, "gallery", id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data() as GalleryImage;
+            await deleteFileByUrl(data.src);
+        }
+
+        await deleteDoc(docRef);
+    } catch (error) {
+        console.error("Error deleting gallery item:", error);
+        throw error;
+    }
 }
 
 export function subscribeToEventGallery(eventId: string, callback: (images: GalleryImage[]) => void) {
