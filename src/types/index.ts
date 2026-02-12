@@ -126,6 +126,7 @@ export interface EventRegistration {
         userId?: string;
     }[];
     participantIds?: string[]; // Includes leader and all members for query efficiency
+    pendingRequests?: string[]; // User IDs of students requesting to join
 }
 
 export interface TeamInvitation {
@@ -139,6 +140,7 @@ export interface TeamInvitation {
     targetUserId: string;
     targetName: string;
     targetRollNo: string;
+    type: 'invite' | 'request'; // Distinguish between team invites and join requests
     status: 'pending' | 'accepted' | 'rejected';
     createdAt: any;
     respondedAt?: any;

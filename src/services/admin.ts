@@ -208,32 +208,47 @@ export function subscribeToPendingRegistrations(callback: (regs: PendingRegistra
 }
 
 export async function approveRegistration(uid: string, actorUid?: string, actorName?: string) {
-    // 1. Get the pending data
+    let email = "";
+    let createdAt = Timestamp.now();
+
+    // 1. Try to get from pending_registrations
     const pendingRef = doc(db, "pending_registrations", uid);
     const pendingSnap = await getDoc(pendingRef);
 
-    if (!pendingSnap.exists()) {
-        throw new Error("Registration request not found");
+    if (pendingSnap.exists()) {
+        const data = pendingSnap.data();
+        email = data.email;
+        createdAt = data.requestedAt;
+        // Delete from pending
+        await deleteDoc(pendingRef);
+    } else {
+        // 2. Fallback: Check if user exists in 'admins' with role 'pending'
+        const adminRef = doc(db, "admins", uid);
+        const adminSnap = await getDoc(adminRef);
+
+        if (adminSnap.exists() && adminSnap.data().role === "pending") {
+            const data = adminSnap.data();
+            email = data.email;
+            createdAt = data.createdAt;
+        } else {
+            throw new Error("Registration request not found");
+        }
     }
 
-    const data = pendingSnap.data();
-
-    // 2. Create the Admin Profile with 'onboarding' status
+    // 3. Create/Update Admin Profile with 'onboarding' status
     // Default role is 'Activator' (No limit)
+    // We use setDoc with merge: true to avoid overwriting existing fields if falling back
     await setDoc(doc(db, "admins", uid), {
         uid,
-        email: data.email,
+        email,
         role: "Activator",
-        status: "onboarding",
-        createdAt: data.requestedAt,
+        status: "onboarding", // Forces user to fill profile
+        createdAt: createdAt, // Maintain original request time
         approvedAt: Timestamp.now() // Tenure Starts Now
-    });
-
-    // 3. Delete from pending
-    await deleteDoc(pendingRef);
+    }, { merge: true });
 
     if (actorUid) {
-        await logAuditAction(actorUid, actorName || "Unknown", "APPROVE_ADMIN", { targetUid: uid, email: data.email });
+        await logAuditAction(actorUid, actorName || "Unknown", "APPROVE_ADMIN", { targetUid: uid, email });
     }
 }
 

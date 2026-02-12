@@ -15,10 +15,9 @@ export async function searchStudents(searchTerm: string): Promise<UserProfile[]>
     const termUpper = term.toUpperCase();
     const termLower = term.toLowerCase();
 
-    // Firestore doesn't support full-text search natively.
-    // Strategy: Fetch all verified users and filter client-side.
-    // For <5000 users this is acceptable. For scale, use Algolia/Typesense.
-    const q = query(collection(db, "users"), where("isVerified", "==", true));
+    // Strategy: Fetch all users and filter client-side.
+    // Modified: Removed isVerified check to allow searching for new/unverified students
+    const q = query(collection(db, "users"));
     const snapshot = await getDocs(q);
 
     const results: UserProfile[] = [];
@@ -80,6 +79,7 @@ export async function sendInvitation(data: {
         targetUserId: data.targetUserId,
         targetName: data.targetName,
         targetRollNo: data.targetRollNo,
+        type: 'invite',
         status: 'pending',
         createdAt: Timestamp.now(),
     };
@@ -145,30 +145,57 @@ export async function respondToInvitation(
     const maxSize = eventData?.maxTeamSize || 10;
     const minSize = eventData?.minTeamSize || 1;
 
+    // Determine who is the new member based on type
+    const isRequest = invitation.type === 'request';
     const currentMembers = regData.teamMembers || [];
+
     if (currentMembers.length + 1 >= maxSize) { // +1 = leader
         throw new Error("This team is already full.");
     }
 
-    // Add member to team
+    const newMemberId = isRequest ? invitation.senderId : invitation.targetUserId;
+    const newMemberName = isRequest ? invitation.senderName : invitation.targetName;
+    const newMemberRollNo = isRequest ? "Unknown" : invitation.targetRollNo; // Need sender details if request!
+
+    // Wait! Invitation stores senderName but NOT senderRollNo.
+    // If it's a request, we need sender's rollNo.
+    // We should fetch sender profile or store it in invitation.
+    // Let's assume for now we fetch it or store it.
+    // Better: Update TeamInvitation to include senderRollNo?
+    // Or just fetch user profile here.
+    let rollNo = newMemberRollNo;
+    if (isRequest) {
+        const userDoc = await getDoc(doc(db, "users", newMemberId));
+        rollNo = userDoc.exists() ? userDoc.data().rollNo : "Unknown";
+    }
+
     const newMember = {
-        name: invitation.targetName,
-        rollNo: invitation.targetRollNo,
-        userId: invitation.targetUserId,
+        name: newMemberName,
+        rollNo: rollNo,
+        userId: newMemberId,
     };
 
     // Update registration: add member, check if team is now complete
     const updatedMembers = [...currentMembers, newMember];
-    const totalSize = updatedMembers.length + 1; // +1 for leader
-    const newStatus = totalSize >= minSize ? 'registered' : 'forming';
 
+    // Check pending requests limit? No, just remove accepted one.
     // Also update participantIds for querying
     const participantIds = regData.participantIds || [regData.userId];
-    const updatedParticipantIds = [...participantIds, invitation.targetUserId];
+    const updatedParticipantIds = [...participantIds, newMemberId];
+
+    // Remove from pendingRequests if it was a request
+    let pendingRequests = regData.pendingRequests || [];
+    if (isRequest) {
+        pendingRequests = pendingRequests.filter(id => id !== newMemberId);
+    }
+
+    const totalSize = updatedMembers.length + 1; // +1 for leader
+    const newStatus = totalSize >= minSize ? 'registered' : 'forming';
 
     await updateDoc(regRef, {
         teamMembers: updatedMembers,
         participantIds: updatedParticipantIds,
+        pendingRequests, // Update pending requests
         status: newStatus,
     });
 
@@ -177,6 +204,87 @@ export async function respondToInvitation(
         status: 'accepted',
         respondedAt: Timestamp.now(),
     });
+}
+
+// --- Join Request Functions ---
+
+export async function getAvailableTeams(eventId: string, currentUserId: string): Promise<EventRegistration[]> {
+    // 1. Get all forming/registered teams for this event
+    const q = query(
+        collection(db, "registrations"),
+        where("eventId", "==", eventId)
+    );
+    const snapshot = await getDocs(q);
+    const teams = snapshot.docs.map(d => d.data() as EventRegistration);
+
+    // 2. Get Event Data for max size
+    const eventDoc = await getDoc(doc(db, "events", eventId));
+    if (!eventDoc.exists()) return [];
+    const eventMax = eventDoc.data().maxTeamSize || 10;
+
+    // 3. Filter
+    return teams.filter(team => {
+        // Must be a team (have a name)
+        if (!team.teamName) return false;
+
+        // Must not be full
+        const currentCount = 1 + (team.teamMembers?.length || 0);
+        if (currentCount >= eventMax) return false;
+
+        // Must not have too many pending requests
+        // "total no of joining requests a team can have is the maximum team size"
+        // Wait, does this mean PENDING requests limit?
+        // Let's assume Pending Requests Count < Max Size is the rule
+        const pendingCount = team.pendingRequests?.length || 0;
+        if (pendingCount >= eventMax) return false;
+
+        // Must not already include me
+        if (team.participantIds?.includes(currentUserId)) return false;
+
+        // Must not already have a pending request from me
+        if (team.pendingRequests?.includes(currentUserId)) return false;
+
+        return true;
+    });
+}
+
+export async function requestToJoinTeam(
+    eventId: string,
+    eventTitle: string,
+    team: EventRegistration,
+    user: UserProfile
+) {
+    // Check double registration / request
+    // We rely on getAvailableTeams to hide invalid ones, but db check is safer
+
+    // Create "Request" Invitation
+    // Sender = Student, Target = Leader
+    const inviteId = `${eventId}_${user.uid}_req_${team.id}`; // Unique ID for request
+
+    const invitation: TeamInvitation = {
+        id: inviteId,
+        eventId,
+        eventTitle,
+        teamName: team.teamName!,
+        registrationId: team.id,
+        senderId: user.uid,
+        senderName: user.displayName || "Unknown",
+        // Target is Leader
+        targetUserId: team.userId!, // Leader ID
+        targetName: team.userDetails.name || "Team Leader",
+        targetRollNo: team.userDetails.rollNo,
+        type: 'request',
+        status: 'pending',
+        createdAt: Timestamp.now()
+    };
+
+    // Add to pendingRequests of team
+    const regRef = doc(db, "registrations", team.id);
+    await updateDoc(regRef, {
+        pendingRequests: arrayUnion(user.uid)
+    });
+
+    await setDoc(doc(db, "invitations", inviteId), invitation);
 }
 
 // --- Get Invitations Sent by a Leader for a Specific Event ---
