@@ -19,6 +19,8 @@ export default function EventForm({ initialData, isEdit = false }: EventFormProp
         {
             title: initialData?.title || "",
             date: initialData?.date || "",
+            time: initialData?.time || "",
+            venue: initialData?.venue || "",
             description: initialData?.description || "",
             fullDescription: initialData?.fullDescription || "",
             details: initialData?.details || [],
@@ -125,6 +127,29 @@ export default function EventForm({ initialData, isEdit = false }: EventFormProp
                         <option value="upcoming">Upcoming</option>
                         <option value="past">Past</option>
                     </select>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-sm font-bold text-gray-400 mb-2">Time</label>
+                    <input
+                        type="text"
+                        placeholder="e.g. 10:00 AM - 1:00 PM"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={formData.time}
+                        onChange={e => setFormData({ ...formData, time: e.target.value })}
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-bold text-gray-400 mb-2">Venue</label>
+                    <input
+                        type="text"
+                        placeholder="e.g. Auditorium, Block A"
+                        className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        value={formData.venue}
+                        onChange={e => setFormData({ ...formData, venue: e.target.value })}
+                    />
                 </div>
             </div>
 

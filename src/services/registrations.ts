@@ -43,33 +43,51 @@ export async function registerForEvent(
     // 3. Create Registration ID (Composite key for easy checking)
     const regId = `${eventId}_${userId}`;
 
-    // 4. Team Validation: unique participants check
-    // If it's a team registration, we must ensure NONE of the members are already registered in other teams.
-    if (teamDetails && teamDetails.teamMembers.length > 0) {
+    // 4. Team Validation
+    if (teamDetails) {
         // Fetch ALL registrations for this event to check for duplicates
-        // Optimization: In a huge scale app, we'd use a separate collection "event_participants" with rollNo as key.
-        // For this scale, scanning registration docs (usually < 500) is acceptable or we rely on client integrity + basic checks.
-        // Let's do a reliable check:
         const allRegsSnapshot = await getDocs(query(collection(db, "registrations"), where("eventId", "==", eventId)));
 
-        const newTeamRollNos = new Set(teamDetails.teamMembers.map(m => m.rollNo.trim().toUpperCase()));
-
+        // 4a. Team name uniqueness check
         for (const docSnap of allRegsSnapshot.docs) {
             const reg = docSnap.data() as EventRegistration;
-
-            // Check main user
-            if (newTeamRollNos.has(reg.userDetails.rollNo.trim().toUpperCase())) {
-                throw new Error(`Participant ${reg.userDetails.rollNo} is already registered.`);
+            if (reg.teamName && reg.teamName.trim().toLowerCase() === teamDetails.teamName.trim().toLowerCase()) {
+                throw new Error(`Team name "${teamDetails.teamName}" is already taken for this event.`);
             }
+        }
 
-            // Check their team members if any
-            if (reg.teamMembers) {
-                for (const member of reg.teamMembers) {
-                    if (newTeamRollNos.has(member.rollNo.trim().toUpperCase())) {
-                        throw new Error(`Participant ${member.rollNo} is already registered in team '${reg.teamName}'.`);
+        // 4b. Roll number duplicate check (only if members are provided directly)
+        if (teamDetails.teamMembers && teamDetails.teamMembers.length > 0) {
+            const newTeamRollNos = new Set(teamDetails.teamMembers.map(m => m.rollNo.trim().toUpperCase()));
+
+            for (const docSnap of allRegsSnapshot.docs) {
+                const reg = docSnap.data() as EventRegistration;
+
+                // Check main user
+                if (newTeamRollNos.has(reg.userDetails.rollNo.trim().toUpperCase())) {
+                    throw new Error(`Participant ${reg.userDetails.rollNo} is already registered.`);
+                }
+
+                // Check their team members if any
+                if (reg.teamMembers) {
+                    for (const member of reg.teamMembers) {
+                        if (newTeamRollNos.has(member.rollNo.trim().toUpperCase())) {
+                            throw new Error(`Participant ${member.rollNo} is already registered in team '${reg.teamName}'.`);
+                        }
                     }
                 }
             }
+        }
+    }
+
+    // Determine initial status
+    let status: 'registered' | 'forming' = 'registered';
+    if (teamDetails) {
+        const minSize = eventData.minTeamSize || 1;
+        // Current size = 1 (leader) + members provided
+        const currentSize = 1 + (teamDetails.teamMembers?.length || 0);
+        if (currentSize < minSize) {
+            status = 'forming';
         }
     }
 
@@ -85,7 +103,8 @@ export async function registerForEvent(
             mobile: userDetails.mobile
         },
         registeredAt: Timestamp.now(),
-        status: 'registered',
+        status,
+        participantIds: [userId],
         ...(teamDetails && {
             teamName: teamDetails.teamName,
             teamMembers: teamDetails.teamMembers
@@ -112,17 +131,31 @@ export async function getEventRegistrations(eventId: string): Promise<EventRegis
 }
 
 export async function checkRegistrationStatus(eventId: string, userId: string): Promise<EventRegistration | null> {
+    // 1. Direct Check (Leader / Individual) - Optimally fast for most cases
     const docRef = doc(db, "registrations", `${eventId}_${userId}`);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         return docSnap.data() as EventRegistration;
     }
-    return null;
-}
 
-export async function checkInUser(eventId: string, userId: string) {
-    const regId = `${eventId}_${userId}`;
-    await setDoc(doc(db, "registrations", regId), { status: 'attended' }, { merge: true });
+    // 2. Member Check (Part of a team)
+    // Search if user is a participant in someone else's team
+    const q = query(
+        collection(db, "registrations"),
+        where("eventId", "==", eventId),
+        where("participantIds", "array-contains", userId)
+    );
+
+    try {
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            return querySnapshot.docs[0].data() as EventRegistration;
+        }
+    } catch (e) {
+        console.warn("Error checking member status:", e);
+    }
+
+    return null;
 }
 
 import { Feedback, Event } from "@/types";

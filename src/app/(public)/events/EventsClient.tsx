@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { Calendar, Clock, MapPin, ExternalLink, X, Check, AlertCircle, Loader2, MessageSquare, CheckCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, ExternalLink, X, Check, AlertCircle, Loader2, MessageSquare, CheckCircle, Star, Users } from "lucide-react";
 import { Event } from "@/types";
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -121,7 +121,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         // Call API with team details
         await registerForEvent(selectedEvent.id, user.uid, currentUserProfile, { teamName, teamMembers: members });
         checkStatus();
-        setShowTeamModal(false);
+        // Don't close modal here, let the user close it after inviting members
     };
 
     // Helper to render the correct action button
@@ -204,6 +204,22 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
         // 3. Registration Phase
         if (registration) {
+            if (registration.status === 'forming') {
+                return (
+                    <div className="flex flex-col gap-2 items-center w-full sm:w-auto">
+                        <button
+                            onClick={handleRegisterClick} // Re-uses profile fetch logic to open modal
+                            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Users size={20} /> Manage Team (Forming)
+                        </button>
+                        <span className="text-xs text-yellow-400 font-medium">
+                            Waiting for members to accept invites
+                        </span>
+                    </div>
+                );
+            }
+
             return (
                 <button disabled className="px-8 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl font-bold flex items-center justify-center gap-2 cursor-default">
                     <Check size={20} /> Registered
@@ -364,15 +380,15 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                                 <div className="flex flex-wrap gap-4 text-gray-300">
                                     <span className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-sm backdrop-blur-md">
                                         <Calendar size={16} className="text-blue-400" />
-                                        {selectedEvent.registrationStatus === 'upcoming' ? 'Date TBD' : selectedEvent.date}
+                                        {selectedEvent.date || 'Date TBD'}
                                     </span>
                                     <span className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-sm backdrop-blur-md">
                                         <Clock size={16} className="text-purple-400" />
-                                        Time TBD
+                                        {selectedEvent.time || 'Time TBD'}
                                     </span>
                                     <span className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-sm backdrop-blur-md">
                                         <MapPin size={16} className="text-red-400" />
-                                        {selectedEvent.registrationStatus === 'upcoming' ? 'Venue TBD' : 'Venue TBD'}
+                                        {selectedEvent.venue || 'Venue TBD'}
                                     </span>
                                 </div>
                             </div>
@@ -380,6 +396,24 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
                         {/* Modal Content */}
                         <div className="p-8">
+                            {/* Rating display for past events */}
+                            {selectedEvent.status === 'past' && selectedEvent.avgRating != null && selectedEvent.avgRating > 0 && (
+                                <div className="flex items-center gap-3 mb-6 bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 rounded-xl">
+                                    <div className="flex items-center gap-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <Star
+                                                key={star}
+                                                size={18}
+                                                className={star <= Math.round(selectedEvent.avgRating!) ? 'text-yellow-400' : 'text-gray-600'}
+                                                fill={star <= Math.round(selectedEvent.avgRating!) ? 'currentColor' : 'none'}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span className="text-yellow-400 font-bold text-sm">{selectedEvent.avgRating.toFixed(1)}</span>
+                                    <span className="text-gray-500 text-sm">({selectedEvent.feedbackCount || 0} {selectedEvent.feedbackCount === 1 ? 'review' : 'reviews'})</span>
+                                </div>
+                            )}
+
                             <div className="prose prose-invert max-w-none mb-8">
                                 <h3 className="text-xl font-bold text-white mb-4">About the Event</h3>
                                 <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
@@ -414,7 +448,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                 <CheckInModal
                     eventId={selectedEvent.id}
                     userId={user.uid}
-                    correctCode={selectedEvent.attendanceCode || ""}
                     onClose={() => setShowCheckIn(false)}
                     onSuccess={() => checkStatus()}
                 />
@@ -433,6 +466,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                 <TeamRegistrationModal
                     event={selectedEvent}
                     userProfile={currentUserProfile}
+                    existingRegistration={registration}
                     onClose={() => setShowTeamModal(false)}
                     onRegister={handleTeamRegistration}
                 />

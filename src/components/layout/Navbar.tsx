@@ -20,6 +20,7 @@ import {
     ChevronDown,
     Shield
 } from "lucide-react";
+import NotificationBell from "@/components/public/NotificationBell";
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -153,6 +154,13 @@ export default function Navbar() {
                             </span>
                         </Link>
 
+                        {/* Notification Bell (Desktop) */}
+                        {user && !profile && (
+                            <div className="mr-2">
+                                <NotificationBell />
+                            </div>
+                        )}
+
                         {/* AUTH SECTION (Desktop) */}
                         <div className="w-px h-6 bg-white/10 mx-2" />
 
@@ -169,12 +177,12 @@ export default function Navbar() {
                                 >
                                     {publicAvatar ? (
                                         <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 shadow-lg">
-                                            <Image 
-                                                src={publicAvatar} 
-                                                alt="Profile" 
+                                            <Image
+                                                src={publicAvatar}
+                                                alt="Profile"
                                                 width={32}
                                                 height={32}
-                                                className="w-full h-full object-cover" 
+                                                className="w-full h-full object-cover"
                                             />
                                         </div>
                                     ) : (
@@ -206,6 +214,11 @@ export default function Navbar() {
                         <span className="font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">ReLU</span>
 
                         <div className="flex items-center gap-4">
+                            {/* Notification Bell (Mobile) - Visible when logged in */}
+                            {!mobileMenuOpen && (
+                                <NotificationBell />
+                            )}
+
                             {/* Mobile Profile Icon (Visible when menu closed too) */}
                             {user && !mobileMenuOpen && (
                                 <Link
@@ -213,12 +226,12 @@ export default function Navbar() {
                                     className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-lg overflow-hidden"
                                 >
                                     {publicAvatar ? (
-                                        <Image 
-                                            src={publicAvatar} 
-                                            alt="Profile" 
+                                        <Image
+                                            src={publicAvatar}
+                                            alt="Profile"
                                             width={32}
                                             height={32}
-                                            className="w-full h-full object-cover" 
+                                            className="w-full h-full object-cover"
                                         />
                                     ) : (
                                         profile?.displayName?.charAt(0) || user.email?.charAt(0).toUpperCase()
@@ -250,12 +263,12 @@ export default function Navbar() {
                                 >
                                     {publicAvatar ? (
                                         <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg border border-white/10">
-                                            <Image 
-                                                src={publicAvatar} 
-                                                alt="Profile" 
+                                            <Image
+                                                src={publicAvatar}
+                                                alt="Profile"
                                                 width={40}
                                                 height={40}
-                                                className="w-full h-full object-cover" 
+                                                className="w-full h-full object-cover"
                                             />
                                         </div>
                                     ) : (

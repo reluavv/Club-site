@@ -2,6 +2,8 @@ export interface Event {
     id: string;
     title: string;
     date: string;
+    time?: string;
+    venue?: string;
     description: string;
     fullDescription: string;
     details: string[];
@@ -115,14 +117,31 @@ export interface EventRegistration {
         mobile: string;
     };
     registeredAt: any;
-    status: 'registered' | 'cancelled' | 'attended';
+    status: 'forming' | 'registered' | 'cancelled' | 'attended';
     feedbackSubmitted?: boolean;
     teamName?: string;
     teamMembers?: {
         name: string;
         rollNo: string;
-        mobile?: string;
+        userId?: string;
     }[];
+    participantIds?: string[]; // Includes leader and all members for query efficiency
+}
+
+export interface TeamInvitation {
+    id: string; // eventId_targetUserId
+    eventId: string;
+    eventTitle: string;
+    teamName: string;
+    registrationId: string; // eventId_senderUserId
+    senderId: string;
+    senderName: string;
+    targetUserId: string;
+    targetName: string;
+    targetRollNo: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: any;
+    respondedAt?: any;
 }
 
 export interface Feedback {

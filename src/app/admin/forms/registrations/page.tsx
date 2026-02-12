@@ -185,9 +185,19 @@ export default function RegistrationsPage() {
                                         <td className="px-6 py-4 text-gray-300">{reg.userDetails.section}</td>
                                         <td className="px-6 py-4 text-gray-300 font-mono text-sm">{reg.userDetails.mobile}</td>
                                         <td className="px-6 py-4">
-                                            <span className="px-2 py-1 bg-green-500/20 text-green-400 border border-green-500/20 rounded text-xs font-bold uppercase">
-                                                Registered
+                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase border ${reg.status === 'attended'
+                                                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/20'
+                                                    : reg.status === 'cancelled'
+                                                        ? 'bg-red-500/20 text-red-400 border-red-500/20'
+                                                        : 'bg-green-500/20 text-green-400 border-green-500/20'
+                                                }`}>
+                                                {reg.status}
                                             </span>
+                                            {reg.feedbackSubmitted && (
+                                                <span className="ml-2 px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded text-xs font-bold">
+                                                    📝 Feedback
+                                                </span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

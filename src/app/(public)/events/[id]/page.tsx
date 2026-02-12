@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { subscribeToEvent, subscribeToEventGallery } from "@/lib/api";
 import { Event, GalleryImage } from "@/types";
-import { Calendar, Clock, MapPin, Play, Image as ImageIcon, ArrowLeft } from "lucide-react";
+import { Calendar, Clock, MapPin, Play, Image as ImageIcon, ArrowLeft, Star } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
@@ -76,11 +76,11 @@ export default function EventDetailPage() {
                             </div>
                             <div className="flex items-center gap-2 text-gray-300 bg-white/10 px-4 py-2 rounded-full backdrop-blur-md">
                                 <Clock size={20} className="text-purple-400" />
-                                <span>Time TBD</span>
+                                <span>{event.time || 'Time TBD'}</span>
                             </div>
                             <div className="flex items-center gap-2 text-gray-300 bg-white/10 px-4 py-2 rounded-full backdrop-blur-md">
                                 <MapPin size={20} className="text-red-400" />
-                                <span>Venue TBD</span>
+                                <span>{event.venue || 'Venue TBD'}</span>
                             </div>
                         </div>
                     </div>
@@ -108,9 +108,26 @@ export default function EventDetailPage() {
                         )}
                     </div>
 
-                    {/* Sidebar / Quick Actions (Optional) */}
+                    {/* Sidebar */}
                     <div className="space-y-6">
-                        {/* Could put related events or tags here */}
+                        {/* Rating for past events */}
+                        {event.status === 'past' && event.avgRating != null && event.avgRating > 0 && (
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                                <h3 className="text-white font-bold text-lg mb-3">Community Rating</h3>
+                                <div className="flex items-center gap-2 mb-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                            key={star}
+                                            size={22}
+                                            className={star <= Math.round(event.avgRating!) ? 'text-yellow-400' : 'text-gray-600'}
+                                            fill={star <= Math.round(event.avgRating!) ? 'currentColor' : 'none'}
+                                        />
+                                    ))}
+                                </div>
+                                <p className="text-yellow-400 font-bold text-2xl">{event.avgRating.toFixed(1)} <span className="text-gray-500 text-sm font-normal">/ 5.0</span></p>
+                                <p className="text-gray-500 text-sm mt-1">{event.feedbackCount || 0} {event.feedbackCount === 1 ? 'review' : 'reviews'}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

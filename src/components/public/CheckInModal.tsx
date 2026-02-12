@@ -1,39 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, CheckCircle } from "lucide-react";
-import { checkInUser } from "@/lib/api";
+import { X, Loader2 } from "lucide-react";
 
 interface CheckInModalProps {
     eventId: string;
     userId: string;
-    correctCode: string;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export default function CheckInModal({ eventId, userId, correctCode, onClose, onSuccess }: CheckInModalProps) {
+export default function CheckInModal({ eventId, userId, onClose, onSuccess }: CheckInModalProps) {
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (code !== correctCode) {
-            setError("Incorrect code. Please try again.");
-            return;
-        }
-
         setLoading(true);
         setError("");
 
         try {
-            await checkInUser(eventId, userId);
+            const res = await fetch("/api/checkin", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ eventId, userId, code }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setError(data.error || "Check-in failed.");
+                setLoading(false);
+                return;
+            }
+
             onSuccess();
             onClose();
         } catch (e) {
             console.error(e);
-            setError("Failed to check in.");
+            setError("Network error. Please try again.");
         } finally {
             setLoading(false);
         }
