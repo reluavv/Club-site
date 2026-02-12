@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllAdmins, deleteAdmin, AdminProfile, PendingRegistration, getPendingRegistrations, approveRegistration, rejectRegistration, subscribeToAllAdmins, subscribeToPendingRegistrations, logActivity, updateAdminRole } from "@/lib/api";
+import { getAllAdmins, deleteAdmin, AdminProfile, PendingRegistration, getPendingRegistrations, approveRegistration, rejectRegistration, subscribeToAllAdmins, subscribeToPendingRegistrations, logActivity, updateAdminRole, createAdminDirectly } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Check, X, Shield, Trash2, User } from "lucide-react";
 
@@ -11,6 +11,26 @@ export default function AdminUsersPage() {
     const [pendingRegs, setPendingRegs] = useState<PendingRegistration[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingAdmin, setEditingAdmin] = useState<AdminProfile | null>(null);
+
+    // New State for Create Modal
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createForm, setCreateForm] = useState({ email: "", password: "", role: "Activator" });
+
+    const handleCreateAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await createAdminDirectly(createForm.email, createForm.password, createForm.role, profile?.uid, profile?.displayName);
+            alert("Admin created successfully!");
+            setShowCreateModal(false);
+            setCreateForm({ email: "", password: "", role: "Activator" }); // Reset
+        } catch (err: any) {
+            console.error(err);
+            alert("Failed to create admin: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const ROLES = ["President", "VP_AIML", "VP_DSA", "AdminHead", "PRHead", "Treasurer", "Mentor", "Faculty", "Activator"];
 
@@ -160,7 +180,78 @@ export default function AdminUsersPage() {
 
     return (
         <div className="max-w-4xl mx-auto text-white">
-            <h1 className="text-3xl font-bold mb-8">Manage Team Access</h1>
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold">Manage Team Access</h1>
+                <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                    <User size={18} /> Create New Admin
+                </button>
+            </div>
+
+            {/* CREATE MODAL */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                    <div className="bg-[#111] border border-white/10 rounded-xl p-6 w-full max-w-md shadow-2xl">
+                        <h2 className="text-xl font-bold mb-4 text-white">Create New Admin</h2>
+
+                        <form onSubmit={handleCreateAdmin} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-400 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                    value={createForm.email}
+                                    onChange={e => setCreateForm({ ...createForm, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-400 mb-1">Password</label>
+                                <input
+                                    type="password"
+                                    required
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                    value={createForm.password}
+                                    onChange={e => setCreateForm({ ...createForm, password: e.target.value })}
+                                    placeholder="Min. 6 characters"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-400 mb-1">Role</label>
+                                <select
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none appearance-none"
+                                    value={createForm.role}
+                                    onChange={e => setCreateForm({ ...createForm, role: e.target.value })}
+                                >
+                                    {ROLES.filter(r => r !== "CTO").map(r => ( // CTO shouldn't create another CTO easily
+                                        <option key={r} value={r}>{r}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex gap-3 justify-end mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="px-4 py-2 text-gray-400 hover:text-white"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg disabled:opacity-50"
+                                >
+                                    {loading ? "Creating..." : "Create Admin"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
 
             {/* Pending Requests */}
             <div className="mb-12">

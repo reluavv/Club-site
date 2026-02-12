@@ -255,13 +255,55 @@ export async function purgeEventData(eventId: string) {
     regsSnap.docs.forEach((d) => batch.delete(d.ref));
     feedSnap.docs.forEach((d) => batch.delete(d.ref));
 
-    // 3. Reset Event Stats - REMOVED per request.
-    // The rating is FINAL and STATIC.
-    // const eventRef = doc(db, "events", eventId);
-    // batch.update(eventRef, {
-    //     feedbackCount: 0,
-    //     avgRating: 0
-    // });
-
     await batch.commit();
 }
+
+// --- Direct User Creation (Secondary App Pattern) ---
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+
+export async function createAdminDirectly(email: string, pass: string, role: string, actorUid?: string, actorName?: string) {
+    // 1. Initialize secondary app to avoid logging out current user
+    const secondaryApp = initializeApp({
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    }, "SecondaryApp");
+
+    const secondaryAuth = getAuth(secondaryApp);
+
+    try {
+        // 2. Create User in Auth
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+        const user = userCredential.user;
+
+        // 3. Create Admin Profile (Active immediately)
+        await setDoc(doc(db, "admins", user.uid), {
+            uid: user.uid,
+            email,
+            role,
+            status: "active",
+            createdAt: Timestamp.now(),
+            approvedAt: Timestamp.now()
+        });
+
+        // 4. Log Audit
+        if (actorUid) {
+            await logAuditAction(actorUid, actorName || "Unknown", "CREATE_ADMIN_DIRECT", { targetUid: user.uid, email, role });
+        }
+
+        // 5. Cleanup
+        await signOut(secondaryAuth);
+        await deleteApp(secondaryApp);
+
+        return user.uid;
+    } catch (error) {
+        // Cleanup on error too
+        await deleteApp(secondaryApp);
+        throw error;
+    }
+}
+

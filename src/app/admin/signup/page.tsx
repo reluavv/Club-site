@@ -46,7 +46,7 @@ export default function AdminSignupPage() {
         } catch (err: any) {
             console.error(err);
             if (err.code === "auth/email-already-in-use") {
-                setError("Email is already in use.");
+                setError("Email already in use. Please Log In to request Admin Access.");
             } else {
                 setError("Failed to create account. Try again.");
             }
