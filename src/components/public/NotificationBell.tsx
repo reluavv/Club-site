@@ -93,7 +93,7 @@ export default function NotificationBell() {
                                             <p className="text-white text-sm font-medium">
                                                 <span className="text-blue-400">{inv.senderName}</span> invited you to join team
                                             </p>
-                                            <p className="text-white font-bold text-sm mt-0.5">"{inv.teamName}"</p>
+                                            <p className="text-white font-bold text-sm mt-0.5">&quot;{inv.teamName}&quot;</p>
                                             <p className="text-gray-500 text-xs mt-1">
                                                 Event: {inv.eventTitle}
                                             </p>

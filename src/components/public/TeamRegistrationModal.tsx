@@ -333,7 +333,7 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                                 )}
 
                                 {searchTerm.length >= 2 && !searching && searchResults.length === 0 && (
-                                    <p className="mt-2 text-gray-500 text-sm text-center py-4">No students found matching "{searchTerm}"</p>
+                                    <p className="mt-2 text-gray-500 text-sm text-center py-4">No students found matching &quot;{searchTerm}&quot;</p>
                                 )}
                             </div>
                         )}
