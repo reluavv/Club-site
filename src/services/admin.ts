@@ -180,9 +180,13 @@ export async function createPendingRegistration(uid: string, email: string) {
 
 export async function getPendingRegistrations(): Promise<PendingRegistration[]> {
     try {
-        const q = query(collection(db, "pending_registrations"), orderBy("requestedAt", "desc"));
+        const q = query(collection(db, "pending_registrations"));
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as PendingRegistration));
+        const regs = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as PendingRegistration));
+        regs.sort((a, b) => { // Client side sort
+            return (b.requestedAt?.seconds || 0) - (a.requestedAt?.seconds || 0);
+        });
+        return regs;
     } catch (error) {
         console.warn("Error fetching pending registrations:", error);
         return [];
@@ -190,9 +194,15 @@ export async function getPendingRegistrations(): Promise<PendingRegistration[]> 
 }
 
 export function subscribeToPendingRegistrations(callback: (regs: PendingRegistration[]) => void) {
-    const q = query(collection(db, "pending_registrations"), orderBy("requestedAt", "desc"));
+    const q = query(collection(db, "pending_registrations"));
     return onSnapshot(q, (snapshot) => {
         const regs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as PendingRegistration));
+        // Client-side sort
+        regs.sort((a, b) => {
+            const tA = a.requestedAt?.seconds || 0;
+            const tB = b.requestedAt?.seconds || 0;
+            return tB - tA;
+        });
         callback(regs);
     });
 }

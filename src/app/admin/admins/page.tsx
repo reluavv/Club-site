@@ -259,31 +259,46 @@ export default function AdminUsersPage() {
                     <Shield size={20} /> Pending Requests
                 </h2>
                 <div className="space-y-4">
-                    {pendingRegs.map(reg => (
-                        <div key={reg.id} className="bg-white/5 border border-yellow-500/30 rounded-xl p-4 flex items-center justify-between">
-                            <div>
-                                <p className="font-bold">{reg.email}</p>
-                                <p className="text-xs text-gray-400">Request Date: {reg.requestedAt?.toDate().toLocaleDateString()}</p>
+                    {(() => {
+                        // Merge pending_registrations and admins with role="pending"
+                        const combinedPending = [...pendingRegs];
+                        admins.filter(a => a.role === "pending").forEach(a => {
+                            if (!combinedPending.find(p => p.email === a.email || p.id === a.uid)) {
+                                combinedPending.push({
+                                    id: a.uid,
+                                    email: a.email,
+                                    requestedAt: a.createdAt
+                                });
+                            }
+                        });
+
+                        if (combinedPending.length === 0) {
+                            return <p className="text-gray-500 italic">No pending requests.</p>;
+                        }
+
+                        return combinedPending.map(reg => (
+                            <div key={reg.id} className="bg-white/5 border border-yellow-500/30 rounded-xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p className="font-bold">{reg.email}</p>
+                                    <p className="text-xs text-gray-400">Request Date: {reg.requestedAt?.toDate ? reg.requestedAt.toDate().toLocaleDateString() : new Date(reg.requestedAt?.seconds * 1000).toLocaleDateString()}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleApprove(reg)}
+                                        className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg flex items-center gap-2 transition-colors"
+                                    >
+                                        <Check size={16} /> Approve
+                                    </button>
+                                    <button
+                                        onClick={() => handleReject(reg)}
+                                        className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg flex items-center gap-2 transition-colors"
+                                    >
+                                        <X size={16} /> Reject
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleApprove(reg)}
-                                    className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg flex items-center gap-2 transition-colors"
-                                >
-                                    <Check size={16} /> Approve
-                                </button>
-                                <button
-                                    onClick={() => handleReject(reg)}
-                                    className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg flex items-center gap-2 transition-colors"
-                                >
-                                    <X size={16} /> Reject
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                    {pendingRegs.length === 0 && (
-                        <p className="text-gray-500 italic">No pending requests.</p>
-                    )}
+                        ));
+                    })()}
                 </div>
             </div>
 

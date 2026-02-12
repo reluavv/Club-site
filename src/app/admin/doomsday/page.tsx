@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useAuth, signOut } from "@/lib/auth";
 import { transferCTORole } from "@/lib/api";
 import { db, storage } from "@/lib/firebase"; // Import storage
-import { collection, getDocs, deleteDoc, doc, query, where } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, query, where, setDoc, Timestamp } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
-import { Skull, AlertTriangle, ArrowRight, Database, ShieldAlert, Folder, Users, Calendar, Image as ImageIcon, BookOpen, MessageSquare, Settings, ChevronRight, X, Trash2, Eraser } from "lucide-react";
+import { Skull, AlertTriangle, ArrowRight, Database, ShieldAlert, Folder, Users, Calendar, Image as ImageIcon, BookOpen, MessageSquare, Settings, ChevronRight, X, Trash2, Eraser, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CollectionManager from "@/components/admin/CollectionManager";
 
@@ -18,7 +18,7 @@ export default function DoomsdayPage() {
     const [confirmText, setConfirmText] = useState("");
 
     // UI State
-    const [showProtocol, setShowProtocol] = useState<"418" | "66" | "99" | null>(null); // 418=Transfer, 66=Purge, 99=Garbage
+    const [showProtocol, setShowProtocol] = useState<"418" | "66" | "99" | "77" | null>(null); // 418=Transfer, 66=Purge, 99=Garbage, 77=Sync
     const [activeCollection, setActiveCollection] = useState<string | null>(null);
     const [purgeProgress, setPurgeProgress] = useState<string[]>([]);
 
@@ -159,6 +159,59 @@ export default function DoomsdayPage() {
         }
     };
 
+    const handleSyncPending = async () => {
+        if (confirmText !== "EXECUTE PROTOCOL 77") {
+            alert("Please type EXECUTE PROTOCOL 77 to confirm.");
+            return;
+        }
+
+        setLoading(true);
+        setPurgeProgress([]);
+        log("Initializing Protocol 77 (SYNC PENDING)...");
+
+        try {
+            // 1. Get all pending admins from 'admins' collection
+            const adminsRef = collection(db, "admins");
+            const qAdmins = query(adminsRef, where("role", "==", "pending"));
+            const adminsSnap = await getDocs(qAdmins);
+            log(`Found ${adminsSnap.size} admins with role='pending'.`);
+
+            // 2. Get all pending registrations
+            const pendingRef = collection(db, "pending_registrations");
+            const pendingSnap = await getDocs(pendingRef);
+            const pendingIds = new Set(pendingSnap.docs.map(d => d.id));
+            log(`Found ${pendingSnap.size} existing pending requests.`);
+
+            let fixed = 0;
+
+            // 3. Sync
+            for (const adminDoc of adminsSnap.docs) {
+                const uid = adminDoc.id;
+                const data = adminDoc.data();
+
+                if (!pendingIds.has(uid)) {
+                    log(`Restoring request for ${data.email}...`);
+                    await setDoc(doc(db, "pending_registrations", uid), {
+                        email: data.email,
+                        requestedAt: data.createdAt || Timestamp.now()
+                    });
+                    fixed++;
+                }
+            }
+
+            log("-----------------------------------");
+            log(`SYNC COMPLETE. ${fixed} requests restored.`);
+            alert(`Operation Complete. ${fixed} requests restored.`);
+
+        } catch (error: any) {
+            console.error(error);
+            log("ERROR: " + error.message);
+            alert("Sync failed: " + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const collectionGroups = [
         {
             title: "User Management",
@@ -251,7 +304,7 @@ export default function DoomsdayPage() {
             {/* Danger Zone */}
             <div className="mt-20 pt-12 border-t border-red-900/30">
                 {!showProtocol ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="flex flex-col items-center justify-center text-center p-6 border border-red-500/10 rounded-2xl bg-red-950/5 hover:bg-red-950/10 transition-colors">
                             <AlertTriangle size={32} className="text-red-900 mb-4 opacity-50" />
                             <h2 className="text-xl font-bold text-red-500 mb-1">Protocol 418</h2>
@@ -291,6 +344,20 @@ export default function DoomsdayPage() {
                                 className="bg-red-900/20 border border-red-500/20 hover:bg-red-900/40 text-red-500 px-4 py-2 rounded-lg font-bold flex items-center gap-2 text-sm transition-all"
                             >
                                 <Eraser size={16} /> Garbage Collect
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center text-center p-6 border border-red-500/10 rounded-2xl bg-red-950/5 hover:bg-red-950/10 transition-colors">
+                            <RefreshCw size={32} className="text-red-900 mb-4 opacity-50" />
+                            <h2 className="text-xl font-bold text-red-500 mb-1">Protocol 77</h2>
+                            <p className="text-gray-500 mb-6 text-xs h-8">
+                                Sync Admin Requests.
+                            </p>
+                            <button
+                                onClick={() => setShowProtocol("77")}
+                                className="bg-red-900/20 border border-red-500/20 hover:bg-red-900/40 text-red-500 px-4 py-2 rounded-lg font-bold flex items-center gap-2 text-sm transition-all"
+                            >
+                                <RefreshCw size={16} /> Sync Requests
                             </button>
                         </div>
                     </div>
@@ -346,7 +413,7 @@ export default function DoomsdayPage() {
                             </div>
                         )}
 
-                        {(showProtocol === "66" || showProtocol === "99") && (
+                        {(showProtocol === "66" || showProtocol === "99" || showProtocol === "77") && (
                             <div className="bg-red-950/30 border border-red-500/30 rounded-2xl p-8 backdrop-blur-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                                     {showProtocol === "66" ? <Skull size={200} /> : <Eraser size={200} />}
@@ -354,7 +421,7 @@ export default function DoomsdayPage() {
 
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-bold text-red-500 flex items-center gap-2">
-                                        Protocol {showProtocol}: {showProtocol === "66" ? "Data Purge" : "Garbage Collection"}
+                                        Protocol {showProtocol}: {showProtocol === "66" ? "Data Purge" : showProtocol === "99" ? "Garbage Collection" : "Sync Pending Requests"}
                                     </h2>
                                     <button onClick={() => setShowProtocol(null)}><X className="text-gray-500 hover:text-white" /></button>
                                 </div>
@@ -368,7 +435,7 @@ export default function DoomsdayPage() {
                                 </div>
 
                                 <p className="text-gray-400 mb-6 font-mono border-l-2 border-red-500 pl-4 text-sm">
-                                    <strong>WARNING:</strong> This action {showProtocol === "66" ? "deletes ALL user documents" : "deletes unverified user documents"} and attempts to delete associated storage.
+                                    <strong>WARNING:</strong> This action {showProtocol === "66" ? "deletes ALL user documents" : showProtocol === "99" ? "deletes unverified user documents" : "creates missing pending registration records"}.
                                     <br /><br />
                                     <span className="text-red-400">NOTE:</span> Firebase Authentication Accounts CANNOT be deleted via this console and must be removed manually.
                                 </p>
@@ -379,7 +446,7 @@ export default function DoomsdayPage() {
                                         <input
                                             type="text"
                                             required
-                                            placeholder={`Type 'EXECUTE ORDER ${showProtocol}' to confirm`}
+                                            placeholder={`Type '${showProtocol === "77" ? "EXECUTE PROTOCOL 77" : `EXECUTE ORDER ${showProtocol}`}' to confirm`}
                                             className="w-full bg-black/60 border border-white/10 rounded-lg p-3 focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-mono"
                                             value={confirmText}
                                             onChange={e => setConfirmText(e.target.value)}
@@ -387,8 +454,8 @@ export default function DoomsdayPage() {
                                     </div>
 
                                     <button
-                                        onClick={showProtocol === "66" ? handlePurgeUsers : handleGarbageCollect}
-                                        disabled={loading || confirmText !== `EXECUTE ORDER ${showProtocol}`}
+                                        onClick={showProtocol === "66" ? handlePurgeUsers : showProtocol === "99" ? handleGarbageCollect : handleSyncPending}
+                                        disabled={loading || confirmText !== `EXECUTE ORDER ${showProtocol}` && confirmText !== `EXECUTE PROTOCOL ${showProtocol}`}
                                         className="w-full py-4 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2"
                                     >
                                         {loading ? "EXECUTING..." : "EXECUTE"}
@@ -399,6 +466,6 @@ export default function DoomsdayPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
