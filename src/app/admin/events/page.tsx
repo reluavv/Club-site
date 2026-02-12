@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getEvents, Event, createEvent, deleteEvent, subscribeToEvents, logActivity } from "@/lib/api";
-import { Plus, Edit2, Trash2, Copy, RefreshCw } from "lucide-react";
+import { Plus, Edit2, Trash2, Copy, RefreshCw, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
@@ -94,6 +94,13 @@ export default function EventsAdmin() {
                                         </span>
                                     </td>
                                     <td className="p-4 text-right space-x-2 flex justify-end">
+                                        <Link
+                                            href={`/admin/events/${event.id}/registrations`}
+                                            className="text-green-400 hover:text-green-300 p-2 rounded hover:bg-white/5"
+                                            title="View Registrations"
+                                        >
+                                            <Users size={18} />
+                                        </Link>
                                         <button
                                             onClick={() => handleClone(event)}
                                             className="text-yellow-400 hover:text-yellow-300 p-2 rounded hover:bg-white/5"

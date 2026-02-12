@@ -63,7 +63,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
-    await updateDoc(doc(db, "users", uid), data);
+    await setDoc(doc(db, "users", uid), data, { merge: true });
 }
 
 // --- Tenure Check (3 Years for Public Users) ---

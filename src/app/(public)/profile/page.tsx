@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense, useCallback } from "react";
 import { useAuth, signOut } from "@/lib/auth";
 import { getUserProfile, updateUserProfile, getOnboardingConfig, OnboardingConfig } from "@/lib/api";
+import { Timestamp } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { User, LogOut, Save, Edit2, AlertCircle, Briefcase, Hash, Layers, CheckCircle, Camera } from "lucide-react";
@@ -110,12 +111,15 @@ function ProfileContent() {
             const promises = [
                 updateUserProfile(user.uid, {
                     ...formData,
-                    // If RollNo, Class, or Section changed, revoke verification to force re-check
+                    email: user.email || "", // Ensure email is saved
+                    // If RollNo, Class, or Section changed, revoke verification
                     isVerified: (
                         profile?.rollNo === formData.rollNo &&
                         profile?.class === formData.class &&
                         profile?.section === formData.section
-                    )
+                    ),
+                    // If new profile, set creation time
+                    ...(profile ? {} : { createdAt: Timestamp.now() })
                 })
             ];
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut, useAuth } from "@/lib/auth";
 import {
-    LogOut, LayoutDashboard, Calendar, ClipboardList,
+    LogOut, LayoutDashboard, Calendar, ClipboardList, Users,
     BookOpen, Image as ImageIcon, Shield, Home, Skull, Terminal, MessageSquare
 } from "lucide-react";
 
@@ -25,6 +25,7 @@ export default function Sidebar() {
             <nav className="flex-1 space-y-2 overflow-y-auto">
                 <NavLink href="/admin" icon={<LayoutDashboard size={20} />} label="Dashboard" />
                 <NavLink href="/admin/events" icon={<Calendar size={20} />} label="Events" />
+                <NavLink href="/admin/team" icon={<Users size={20} />} label="Team Members" />
                 <NavLink href="/admin/forms" icon={<ClipboardList size={20} />} label="Forms" />
                 <div className="h-px bg-white/10 my-2" />
                 <NavLink href="/admin/resources" icon={<BookOpen size={20} />} label="Resources" />

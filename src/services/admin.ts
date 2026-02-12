@@ -263,6 +263,11 @@ import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 
 export async function createAdminDirectly(email: string, pass: string, role: string, actorUid?: string, actorName?: string) {
+    // 0. Check Role Limit First
+    if (!(await checkRoleLimit(role))) {
+        throw new Error(`Role limit reached for ${role}. Cannot create.`);
+    }
+
     // 1. Initialize secondary app to avoid logging out current user
     const secondaryApp = initializeApp({
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
