@@ -152,6 +152,35 @@ export default function AdminSettingsPage() {
                 </div>
             </div>
 
+            <div className="mt-8 pt-8 border-t border-white/10">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-red-400">
+                    <AlertTriangle size={20} /> System Maintenance
+                </h2>
+                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h3 className="font-bold text-red-200">Archive Old Logs</h3>
+                        <p className="text-sm text-gray-400">Delete audit logs older than 30 days to free up storage space.</p>
+                    </div>
+                    <button
+                        onClick={async () => {
+                            if (confirm("Are you sure you want to delete logs older than 30 days? This cannot be undone.")) {
+                                try {
+                                    // Import dynamically to avoid server/client issues if any
+                                    const { archiveOldLogs } = await import("@/services/audit");
+                                    const count = await archiveOldLogs(30);
+                                    alert(`Archived ${count} old log entries.`);
+                                } catch (e: any) {
+                                    alert("Error archiving logs: " + e.message);
+                                }
+                            }
+                        }}
+                        className="px-6 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/50 rounded-lg font-bold transition-all"
+                    >
+                        Archive Logs
+                    </button>
+                </div>
+            </div>
+
             <div className="mt-8 flex justify-end">
                 <button
                     onClick={handleSave}

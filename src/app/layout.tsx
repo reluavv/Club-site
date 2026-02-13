@@ -38,7 +38,7 @@ export const metadata: Metadata = {
         images: ["/images/hero-logo.png"],
     },
     verification: {
-        google: "google-site-verification=YOUR_CODE_HERE", // TODO: Replace with actual verification code
+        // google: "google-site-verification=YOUR_CODE_HERE", // TODO: Replace with actual verification code
     },
 };
 

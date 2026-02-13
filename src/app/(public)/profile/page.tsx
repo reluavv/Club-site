@@ -268,28 +268,36 @@ function ProfileContent() {
                         </div>
 
                         {/* Residence */}
-                        <div className="flex items-center gap-4 bg-black/20 p-4 rounded-xl border border-white/5">
+                        <div className="flex flex-col md:flex-row md:items-center gap-4 bg-black/20 p-4 rounded-xl border border-white/5">
                             <label className="text-sm font-bold text-gray-300">Residence Type:</label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="residence"
-                                    checked={formData.hosteller}
-                                    onChange={() => setFormData({ ...formData, hosteller: true })}
-                                    className="accent-blue-500"
-                                />
-                                <span className="text-gray-400 text-sm">Hosteller</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="residence"
-                                    checked={!formData.hosteller}
-                                    onChange={() => setFormData({ ...formData, hosteller: false })}
-                                    className="accent-blue-500"
-                                />
-                                <span className="text-gray-400 text-sm">Day Scholar</span>
-                            </label>
+                            <div className="flex items-center gap-6">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${formData.hosteller ? 'border-blue-500 bg-blue-500/20' : 'border-gray-500 group-hover:border-gray-400'}`}>
+                                        {formData.hosteller && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+                                    </div>
+                                    <input
+                                        type="radio"
+                                        name="residence"
+                                        checked={formData.hosteller}
+                                        onChange={() => setFormData({ ...formData, hosteller: true })}
+                                        className="hidden"
+                                    />
+                                    <span className={`text-sm transition-colors ${formData.hosteller ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}`}>Hosteller</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${!formData.hosteller ? 'border-blue-500 bg-blue-500/20' : 'border-gray-500 group-hover:border-gray-400'}`}>
+                                        {!formData.hosteller && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+                                    </div>
+                                    <input
+                                        type="radio"
+                                        name="residence"
+                                        checked={!formData.hosteller}
+                                        onChange={() => setFormData({ ...formData, hosteller: false })}
+                                        className="hidden"
+                                    />
+                                    <span className={`text-sm transition-colors ${!formData.hosteller ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'}`}>Day Scholar</span>
+                                </label>
+                            </div>
                         </div>
 
                         {error && (

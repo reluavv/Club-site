@@ -78,46 +78,52 @@ export default function AvatarSelector({ currentAvatar, onSelect, onClose }: Ava
                         <Loader2 className="animate-spin text-blue-500" size={32} />
                     </div>
                 ) : (
-                    <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
+                    <div className="flex flex-col md:flex-row flex-grow overflow-hidden h-[60vh] md:h-[70vh]">
 
                         {/* Sidebar / Tabs (Desktop: Left, Mobile: Top) */}
-                        <div className="w-full md:w-48 border-b md:border-b-0 md:border-r border-white/10 shrink-0 overflow-x-auto md:overflow-y-auto bg-black/20 p-2 flex md:flex-col gap-1 md:gap-2">
+                        <div className="w-full md:w-48 border-b md:border-b-0 md:border-r border-white/10 shrink-0 overflow-x-auto md:overflow-y-auto bg-black/20 p-2 flex md:flex-col gap-1 md:gap-2 custom-scrollbar">
                             {categories.map(cat => (
                                 <button
                                     key={cat}
                                     onClick={() => setActiveCategory(cat)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold capitalize whitespace-nowrap text-left transition-all ${activeCategory === cat
-                                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    className={`px-4 py-3 rounded-lg text-sm font-bold capitalize whitespace-nowrap text-left transition-all flex items-center gap-2 ${activeCategory === cat
+                                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
                                         }`}
                                 >
+                                    <div className={`w-2 h-2 rounded-full ${activeCategory === cat ? 'bg-blue-500' : 'bg-gray-600'}`} />
                                     {cat}
                                 </button>
                             ))}
                         </div>
 
                         {/* Grid */}
-                        <div className="flex-grow overflow-y-auto p-6 bg-[#0a0a0a]">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <div className="flex-grow overflow-y-auto p-4 md:p-6 bg-[#0a0a0a] custom-scrollbar">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 md:gap-4">
                                 {avatarsMap[activeCategory]?.map((url) => (
                                     <button
                                         key={url}
                                         onClick={() => handleSelect(url)}
-                                        className={`group relative aspect-square rounded-full overflow-hidden border-2 transition-all ${selectedAvatar === url
-                                            ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] scale-95'
-                                            : 'border-white/10 hover:border-white/40 hover:scale-105'
+                                        className={`group relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-200 ${selectedAvatar === url
+                                            ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.5)] scale-95 ring-2 ring-blue-500/20'
+                                            : 'border-white/5 hover:border-white/30 hover:scale-[1.02] hover:shadow-lg'
                                             }`}
                                     >
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10" />
+
                                         <Image
                                             src={url}
                                             alt="Avatar"
                                             fill
-                                            className="object-cover"
-                                            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                            sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 15vw"
                                         />
+
                                         {selectedAvatar === url && (
-                                            <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                                                <Check className="text-white drop-shadow-md" size={32} />
+                                            <div className="absolute inset-0 bg-blue-500/30 flex items-center justify-center z-20 backdrop-blur-[1px]">
+                                                <div className="bg-blue-500 rounded-full p-1.5 shadow-lg transform scale-100 animate-in zoom-in duration-200">
+                                                    <Check className="text-white" size={20} />
+                                                </div>
                                             </div>
                                         )}
                                     </button>

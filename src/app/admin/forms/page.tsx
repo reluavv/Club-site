@@ -282,7 +282,8 @@ export default function FormsDashboard() {
                                     {profile?.role === 'CTO' && (
                                         <button
                                             onClick={async () => {
-                                                if (confirm(`⚠️ DANGER: PURGE DATA for "${event.title}"?\n\nThis will DELETE ALL registrations, attendance, and feedback.\nThe "Final Rating" will be SAVED and preserved.\n\nType "CONFIRM" to proceed.`)) {
+                                                const confirmation = prompt(`⚠️ DANGER: PURGE DATA for "${event.title}"?\n\nThis will DELETE ALL registrations, attendance, and feedback.\nThe "Final Rating" will be SAVED and preserved.\n\nType "CONFIRM" to proceed.`);
+                                                if (confirmation === "CONFIRM") {
                                                     await purgeEventData(event.id);
                                                     alert("Data purged. Final Rating preserved.");
                                                     loadData();

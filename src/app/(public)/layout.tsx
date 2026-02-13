@@ -11,7 +11,7 @@ export default function PublicLayout({
         <>
             <StarBackground />
             <Navbar />
-            <main className="min-h-screen relative z-10 flex flex-col">
+            <main className="min-h-screen relative flex flex-col">
                 {children}
             </main>
             <Footer />
