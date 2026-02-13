@@ -127,6 +127,8 @@ export interface EventRegistration {
     }[];
     participantIds?: string[]; // Includes leader and all members for query efficiency
     pendingRequests?: string[]; // User IDs of students requesting to join
+    attendance?: { [userId: string]: boolean };
+    feedbackMap?: { [userId: string]: boolean };
 }
 
 export interface TeamInvitation {
@@ -149,6 +151,7 @@ export interface TeamInvitation {
 export interface Feedback {
     id: string;
     eventId: string;
+    registrationId?: string; // Link to specific registration doc (important for teams)
     userId: string;
     userName: string;
     overallRating: number; // 5 stars

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function POST(request: Request) {
     try {
@@ -43,21 +43,45 @@ export async function POST(request: Request) {
             );
         }
 
-        // 4. Verify the user is registered
-        const regId = `${eventId}_${userId}`;
-        const regRef = doc(db, 'registrations', regId);
-        const regSnap = await getDoc(regRef);
+        // 4. Verify the user is registered (Check Individual then Team)
+        let regRef;
+        let regData;
 
-        if (!regSnap.exists()) {
+        // A. Direct Individual Registration
+        const individualRegRef = doc(db, 'registrations', `${eventId}_${userId}`);
+        const individualSnap = await getDoc(individualRegRef);
+
+        if (individualSnap.exists()) {
+            regRef = individualRegRef;
+            regData = individualSnap.data();
+        } else {
+            // B. Team Membership Check
+            const q = query(
+                collection(db, "registrations"),
+                where("eventId", "==", eventId),
+                where("participantIds", "array-contains", userId)
+            );
+            const querySnap = await getDocs(q);
+            if (!querySnap.empty) {
+                // Only take the first one (user shouldn't be in multiple teams for same event)
+                regRef = querySnap.docs[0].ref;
+                regData = querySnap.docs[0].data();
+            }
+        }
+
+        if (!regRef || !regData) {
             return NextResponse.json(
                 { error: 'You are not registered for this event' },
                 { status: 403 }
             );
         }
 
-        const regData = regSnap.data();
+        // Check if ALREADY checked in
+        // Support both "status" (legacy/individual) and "attendance" map (team/new)
+        const hasIndividualStatus = regData.status === 'attended';
+        const hasMapStatus = regData.attendance && regData.attendance[userId];
 
-        if (regData.status === 'attended') {
+        if (hasIndividualStatus || hasMapStatus) {
             return NextResponse.json(
                 { error: 'You have already checked in' },
                 { status: 400 }
@@ -65,7 +89,22 @@ export async function POST(request: Request) {
         }
 
         // 5. Mark as attended
-        await setDoc(regRef, { status: 'attended' }, { merge: true });
+        // If team event (or just to be safe), use attendance map for specific user
+        // If individual event, we can also set global status, but map is more robust.
+        // Let's do BOTH for individual (if maxTeamSize=1) or just Map?
+        // To allow "EventsClient" to work without massive changes, we:
+        // - If individual (no teamName), set status='attended' (preserves existing flow compatibility)
+        // - If team, set attendance map.
+
+        if (regData.teamName) {
+            // Team: Use Map
+            await setDoc(regRef, {
+                attendance: { [userId]: true }
+            }, { merge: true });
+        } else {
+            // Individual: Use Status (Legacy compatibility)
+            await setDoc(regRef, { status: 'attended' }, { merge: true });
+        }
 
         return NextResponse.json({ success: true });
 

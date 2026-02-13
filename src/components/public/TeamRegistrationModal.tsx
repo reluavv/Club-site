@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     X, Plus, Search, Loader2, AlertCircle, Send, Check, Clock,
-    UserPlus, Users, ArrowLeft, User
+    UserPlus, Users, ArrowLeft, User, Trash2, LogOut
 } from "lucide-react";
 import { Event, UserProfile, TeamInvitation, EventRegistration } from "@/types";
 import {
     searchStudents, sendInvitation, subscribeToTeamInvitations,
-    getAvailableTeams, requestToJoinTeam
+    getAvailableTeams, requestToJoinTeam, deleteTeam, removeTeamMember
 } from "@/lib/api";
 
 interface TeamRegistrationModalProps {
@@ -17,11 +17,15 @@ interface TeamRegistrationModalProps {
     existingRegistration?: EventRegistration | null;
     onClose: () => void;
     onRegister: (teamName: string, members: any[]) => Promise<void>;
+    onStatusChange?: () => void;
 }
 
-export default function TeamRegistrationModal({ event, userProfile, existingRegistration, onClose, onRegister }: TeamRegistrationModalProps) {
+export default function TeamRegistrationModal({ event, userProfile, existingRegistration, onClose, onRegister, onStatusChange }: TeamRegistrationModalProps) {
     const minSize = event.minTeamSize || 1;
     const maxSize = event.maxTeamSize || 1;
+
+    // Determine Leader Status
+    const isLeader = !existingRegistration || existingRegistration.userId === userProfile.uid;
 
     // View state: 'select' (choose path) | 'create' (form) | 'join' (list)
     // If existing registration, default to 'create' (which shows invite screen if created)
@@ -46,6 +50,47 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
     const [availableTeams, setAvailableTeams] = useState<EventRegistration[]>([]);
     const [loadingTeams, setLoadingTeams] = useState(false);
     const [requestingTo, setRequestingTo] = useState<string | null>(null);
+
+    // Handlers for Delete/Remove/Leave
+    const handleDeleteTeam = async () => {
+        if (!confirm("Are you sure? This will disband the team and cancel all invitations. This action cannot be undone.")) return;
+        setLoading(true);
+        try {
+            await deleteTeam(event.id, userProfile.uid);
+            onStatusChange?.();
+            onClose();
+        } catch (e: any) {
+            console.error(e);
+            setError(e.message || "Failed to delete team.");
+            setLoading(false);
+        }
+    };
+
+    const handleRemoveMember = async (targetUserId: string) => {
+        if (!confirm("Remove this member from the team?")) return;
+        try {
+            await removeTeamMember(event.id, userProfile.uid, targetUserId);
+        } catch (e: any) {
+            console.error(e);
+            alert(e.message || "Failed to remove member.");
+        }
+    };
+
+    const handleLeaveTeam = async () => {
+        if (!confirm("Are you sure you want to leave this team?")) return;
+        setLoading(true);
+        try {
+            const leaderId = existingRegistration?.userId;
+            if (!leaderId) throw new Error("Leader not found");
+            await removeTeamMember(event.id, leaderId, userProfile.uid);
+            onStatusChange?.();
+            onClose();
+        } catch (e: any) {
+            console.error(e);
+            setError(e.message || "Failed to leave team.");
+            setLoading(false);
+        }
+    };
 
     // --- Create Flow Logic ---
 
@@ -94,12 +139,12 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
 
     // Subscribe to invitation statuses
     useEffect(() => {
-        if (!teamCreated) return;
+        if (!teamCreated || !isLeader) return; // Only leader subscribesinvitations
         const unsub = subscribeToTeamInvitations(event.id, userProfile.uid, (invs) => {
             setSentInvitations(invs);
         });
         return () => unsub();
-    }, [teamCreated, event.id, userProfile.uid]);
+    }, [teamCreated, isLeader, event.id, userProfile.uid]);
 
     const handleCreateTeam = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -171,8 +216,6 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
         setError("");
         try {
             await requestToJoinTeam(event.id, event.title, team, userProfile);
-            // Refresh list to hide this team? Or just mark as requested?
-            // requestToJoinTeam adds me to pendingRequests, so getAvailableTeams filters it out next time.
             await loadAvailableTeams();
         } catch (e: any) {
             console.error(e);
@@ -185,10 +228,46 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
 
     // --- Render Helpers ---
 
-    const acceptedCount = sentInvitations.filter(i => i.status === 'accepted').length;
-    const pendingCount = sentInvitations.filter(i => i.status === 'pending').length;
-    const totalTeamSize = 1 + acceptedCount;
-    const canInviteMore = sentInvitations.length + 1 < maxSize;
+    // Calculate Counts & Members
+    const currentMemberCount = isLeader
+        ? 1 + sentInvitations.filter(i => i.status === 'accepted').length
+        : 1 + (existingRegistration?.teamMembers?.length || 0);
+
+    const pendingCount = isLeader
+        ? sentInvitations.filter(i => i.status === 'pending').length
+        : 0;
+
+    const canInviteMore = currentMemberCount < maxSize;
+
+    // Prepare list of members to display
+    const leaderInfo = isLeader
+        ? { name: userProfile.displayName, rollNo: userProfile.rollNo, initial: userProfile.displayName?.charAt(0) || "?" }
+        : {
+            name: existingRegistration?.userDetails.name || "Unknown",
+            rollNo: existingRegistration?.userDetails.rollNo || "Unknown",
+            initial: existingRegistration?.userDetails.name?.charAt(0) || "?"
+        };
+
+    const membersList = isLeader
+        ? sentInvitations.map(inv => ({
+            id: inv.id,
+            userId: inv.type === 'request' ? inv.senderId : inv.targetUserId,
+            name: inv.type === 'request' ? inv.senderName : inv.targetName,
+            rollNo: inv.type === 'request' ? 'Unknown' : inv.targetRollNo,
+            initial: (inv.type === 'request' ? inv.senderName : inv.targetName).charAt(0),
+            status: inv.status,
+            type: inv.type
+        }))
+        : (existingRegistration?.teamMembers || []).map((m: any, idx: number) => ({
+            id: `mem-${idx}`,
+            userId: m.userId,
+            name: m.name,
+            rollNo: m.rollNo,
+            initial: m.name?.charAt(0) || "?",
+            status: 'accepted' as const,
+            type: 'invite' as const
+        }));
+
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -206,7 +285,7 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                             <h2 className="text-2xl font-bold text-white">
                                 {view === 'select' ? "Team Registration" :
                                     view === 'join' ? "Join a Team" :
-                                        teamCreated ? "Manage Team" : "Create Team"}
+                                        teamCreated ? (isLeader ? "Manage Team" : "Team Details") : "Create Team"}
                             </h2>
                             <p className="text-gray-400 text-sm mt-1">
                                 {event.title} • Size: {minSize} - {maxSize} Members
@@ -268,11 +347,11 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm">
-                                    {userProfile.displayName?.charAt(0) || "?"}
+                                    {leaderInfo.initial}
                                 </div>
                                 <div>
-                                    <p className="text-white font-medium">{userProfile.displayName}</p>
-                                    <p className="text-xs text-gray-500">{userProfile.rollNo} • Team Leader</p>
+                                    <p className="text-white font-medium">{leaderInfo.name}</p>
+                                    <p className="text-xs text-gray-500">{leaderInfo.rollNo} • Team Leader</p>
                                 </div>
                                 <span className="ml-auto px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded">Leader</span>
                             </div>
@@ -375,21 +454,21 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                                 <div>
                                     <p className="text-white font-bold text-lg">{teamName}</p>
                                     <p className="text-gray-400 text-xs mt-0.5">
-                                        {totalTeamSize >= minSize
+                                        {currentMemberCount >= minSize
                                             ? "✅ Team meets minimum size requirement"
-                                            : `⏳ Need ${minSize - totalTeamSize} more member${minSize - totalTeamSize > 1 ? 's' : ''} to complete`
+                                            : `⏳ Need ${minSize - currentMemberCount} more member${minSize - currentMemberCount > 1 ? 's' : ''} to complete`
                                         }
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-2xl font-bold text-white">{totalTeamSize}<span className="text-gray-500 text-sm">/{maxSize}</span></p>
+                                    <p className="text-2xl font-bold text-white">{currentMemberCount}<span className="text-gray-500 text-sm">/{maxSize}</span></p>
                                     <p className="text-xs text-gray-500">members</p>
                                 </div>
                             </div>
                             <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
-                                    style={{ width: `${(totalTeamSize / maxSize) * 100}%` }}
+                                    style={{ width: `${(currentMemberCount / maxSize) * 100}%` }}
                                 />
                             </div>
                         </div>
@@ -398,40 +477,29 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                         <div>
                             <h3 className="text-sm font-bold text-gray-400 mb-3">Team Members</h3>
                             <div className="space-y-2">
+                                {/* Leader */}
                                 <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-lg p-3">
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-                                        {userProfile.displayName?.charAt(0) || "?"}
+                                        {leaderInfo.initial}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-white text-sm font-medium">{userProfile.displayName}</p>
-                                        <p className="text-gray-500 text-xs">{userProfile.rollNo} • Team Leader</p>
+                                        <p className="text-white text-sm font-medium">{leaderInfo.name}</p>
+                                        <p className="text-gray-500 text-xs">{leaderInfo.rollNo} • Team Leader</p>
                                     </div>
                                     <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold uppercase rounded">Leader</span>
                                 </div>
-                                {sentInvitations.map((inv) => (
+
+                                {/* Members */}
+                                {membersList.map((inv) => (
                                     <div key={inv.id} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-lg p-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${inv.status === 'accepted' ? 'bg-gradient-to-br from-blue-500 to-purple-600' : 'bg-white/10'}`}>
-                                            {inv.targetName.charAt(0)}
+                                            {inv.initial}
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-white text-sm font-medium">{inv.targetName}</p>
-                                            <p className="text-gray-500 text-xs">{inv.targetRollNo}</p>
+                                            <p className="text-white text-sm font-medium">{inv.name}</p>
+                                            <p className="text-gray-500 text-xs">{inv.rollNo}</p>
                                         </div>
                                         {inv.type === 'request' ? (
-                                            // Showing requests (Wait, this list is sendInvitations. Does it include REQUESTS?)
-                                            // subscribeToTeamInvitations fetches invitations where registrationId == myTeam.
-                                            // So YES, it includes requests where I assume I am Leader.
-                                            // Wait, request invitations: sender=Student, target=Leader.
-                                            // The query in subscribeToTeamInvitations is by 'registrationId'.
-                                            // Both Invites and Requests have 'registrationId'.
-                                            // So this list includes BOTH.
-                                            // If type is 'request' & status 'pending', it means someone wants to join.
-                                            // UI should show "Request to Join" with Accept/Reject buttons?
-                                            // Wait, Notification Bell handles Accept/Reject.
-                                            // Can I show basic status here?
-                                            // Invites: I sent them. Status pending.
-                                            // Requests: They sent me. Status pending.
-                                            // It is confusing to show requests here mixed with invites unless distinguished.
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-purple-400 font-bold">Request</span>
                                                 {inv.status === 'pending' && <span className="text-xs text-gray-500">Pending Notification</span>}
@@ -448,13 +516,22 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                                                 <Check size={10} /> Joined
                                             </span>
                                         )}
+                                        {isLeader && (
+                                            <button
+                                                onClick={() => handleRemoveMember(inv.userId)}
+                                                className="ml-2 text-gray-400 hover:text-red-400 p-1.5 hover:bg-white/5 rounded-lg transition-colors"
+                                                title="Remove Member"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Search & Invite Section */}
-                        {canInviteMore && (
+                        {/* Search & Invite Section (LEADER ONLY) */}
+                        {isLeader && canInviteMore && (
                             <div>
                                 <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
                                     <UserPlus size={14} /> Invite Members
@@ -492,8 +569,8 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                                                         onClick={() => handleInvite(student)}
                                                         disabled={!!existingInvite || sendingTo === student.uid || !student.rollNo}
                                                         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0 ${existingInvite
-                                                                ? 'bg-white/10 text-gray-400 cursor-not-allowed'
-                                                                : 'bg-blue-600 hover:bg-blue-500 text-white'
+                                                            ? 'bg-white/10 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-blue-600 hover:bg-blue-500 text-white'
                                                             }`}
                                                     >
                                                         {sendingTo === student.uid ? (
@@ -518,9 +595,20 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                         )}
 
                         <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-                            <p className="text-gray-500 text-xs">
-                                {totalTeamSize >= minSize ? "Your team is ready!" : `Waiting for ${minSize - totalTeamSize} more members`}
-                            </p>
+                            <div className="flex flex-col items-start gap-1">
+                                <p className="text-gray-500 text-xs">
+                                    {currentMemberCount >= minSize ? "Your team is ready!" : `Waiting for ${minSize - currentMemberCount} more members`}
+                                </p>
+                                {isLeader ? (
+                                    <button onClick={handleDeleteTeam} className="flex items-center gap-1.5 text-red-500 hover:text-red-400 text-xs font-bold transition-colors">
+                                        <Trash2 size={12} /> Delete Team
+                                    </button>
+                                ) : (
+                                    <button onClick={handleLeaveTeam} className="flex items-center gap-1.5 text-red-500 hover:text-red-400 text-xs font-bold transition-colors">
+                                        <LogOut size={12} /> Leave Team
+                                    </button>
+                                )}
+                            </div>
                             <button onClick={onClose} className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-lg transition-all">
                                 Done
                             </button>

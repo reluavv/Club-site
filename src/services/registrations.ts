@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDocs, setDoc, query, where, orderBy, Timestamp, getDoc } from "firebase/firestore";
+import { collection, doc, getDocs, setDoc, query, where, orderBy, Timestamp, getDoc, writeBatch, deleteField } from "firebase/firestore";
 import { EventRegistration, UserProfile } from "@/types";
 
 // --- Registration API ---
@@ -162,7 +162,8 @@ import { Feedback, Event } from "@/types";
 import { runTransaction } from "firebase/firestore";
 
 export async function submitFeedback(feedback: Feedback) {
-    const regId = `${feedback.eventId}_${feedback.userId}`;
+    // Prefer explicit registrationId (from Team Member), fallback to individual ID construction
+    const regId = feedback.registrationId || `${feedback.eventId}_${feedback.userId}`;
     const eventRef = doc(db, "events", feedback.eventId);
     const regRef = doc(db, "registrations", regId);
 
@@ -192,8 +193,60 @@ export async function submitFeedback(feedback: Feedback) {
         });
 
         // 4. Mark Registration as Feedback Submitted
+        // Use set with merge to create feedbackMap if it doesn't exist
+        // We mark global feedbackSubmitted as true (legacy support) AND track individual user
+        transaction.set(regRef, {
+            feedbackSubmitted: true,
+            feedbackMap: {
+                [feedback.userId]: true
+            }
+        }, { merge: true });
+    });
+}
+
+export async function deleteTeam(eventId: string, leaderId: string) {
+    const regId = `${eventId}_${leaderId}`;
+
+    // Batch delete registration and all associated invitations
+    const batch = writeBatch(db);
+
+    // 1. Delete Registration
+    const regRef = doc(db, "registrations", regId);
+    batch.delete(regRef);
+
+    // 2. Delete All Invitations/Requests linked to this team
+    const q = query(
+        collection(db, "invitations"),
+        where("registrationId", "==", regId)
+    );
+    const snaps = await getDocs(q);
+    snaps.forEach((d) => batch.delete(d.ref));
+
+    await batch.commit();
+}
+
+export async function removeTeamMember(eventId: string, leaderId: string, memberId: string) {
+    const regId = `${eventId}_${leaderId}`;
+    const inviteId = `${eventId}_${memberId}`; // Invitation ID is always eventId_targetUserId
+
+    await runTransaction(db, async (transaction) => {
+        const regRef = doc(db, "registrations", regId);
+        const regSnap = await transaction.get(regRef);
+        if (!regSnap.exists()) throw new Error("Team not found");
+
+        const data = regSnap.data();
+        const newMembers = (data.teamMembers || []).filter((m: any) => m.userId !== memberId);
+        const newParticipants = (data.participantIds || []).filter((id: string) => id !== memberId);
+
         transaction.update(regRef, {
-            feedbackSubmitted: true
+            teamMembers: newMembers,
+            participantIds: newParticipants,
+            [`attendance.${memberId}`]: deleteField(),
+            [`feedbackMap.${memberId}`]: deleteField()
         });
+
+        // Delete the invitation/request doc so they are free to receive new invites/requests
+        const invRef = doc(db, "invitations", inviteId);
+        transaction.delete(invRef);
     });
 }

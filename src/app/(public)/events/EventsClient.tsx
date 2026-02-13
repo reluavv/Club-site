@@ -124,6 +124,19 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         // Don't close modal here, let the user close it after inviting members
     };
 
+    const handleViewTeam = async () => {
+        if (!user) return;
+        try {
+            const userProfile = await getUserProfile(user.uid);
+            if (userProfile) {
+                setCurrentUserProfile(userProfile);
+                setShowTeamModal(true);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     // Helper to render the correct action button
     const renderActionButton = () => {
         if (!selectedEvent || selectedEvent.status !== 'upcoming') {
@@ -146,9 +159,21 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             );
         }
 
+        // Helper to determine if current user attended
+        const isAttended = user && registration && (
+            registration.status === 'attended' ||
+            (registration.attendance && registration.attendance[user.uid])
+        );
+
+        // Check Feedback Submission status
+        const isFeedbackSubmitted = registration && (
+            registration.feedbackSubmitted ||
+            (user && registration.feedbackMap && registration.feedbackMap[user.uid])
+        );
+
         // 1. Check Feedback Phase
         if (selectedEvent.isFeedbackOpen) {
-            if (registration?.status === 'attended' && !registration.feedbackSubmitted) {
+            if (isAttended && !isFeedbackSubmitted) {
                 return (
                     <button
                         onClick={() => setShowFeedback(true)}
@@ -157,7 +182,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                         <MessageSquare size={20} /> Give Feedback
                     </button>
                 );
-            } else if (registration?.feedbackSubmitted) {
+            } else if (isFeedbackSubmitted) {
                 return (
                     <div className="flex flex-col gap-2 items-center">
                         <div className="text-green-400 flex items-center gap-2 font-bold"><Check size={20} /> Feedback Submitted</div>
@@ -170,7 +195,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                     </div>
                 );
             } else {
-                // Not attended or not registered
+                // Not attended or not registered (and feedback open)
                 return (
                     <Link
                         href={`/events/${selectedEvent.id}`}
@@ -184,19 +209,19 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
         // 2. Check Attendance Phase
         if (selectedEvent.attendanceCode && registration) {
-            if (registration.status === 'registered') { // Not yet attended
+            if (isAttended) {
+                return (
+                    <button disabled className="px-8 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl font-bold flex items-center justify-center gap-2 cursor-default">
+                        <Check size={20} /> Checked In
+                    </button>
+                );
+            } else if (registration.status === 'registered') { // Eligible to check in
                 return (
                     <button
                         onClick={() => setShowCheckIn(true)}
                         className="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold shadow-lg shadow-purple-500/20 transition-all flex items-center justify-center gap-2 animate-pulse"
                     >
                         <CheckCircle size={20} /> Check In Now
-                    </button>
-                );
-            } else if (registration.status === 'attended') {
-                return (
-                    <button disabled className="px-8 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl font-bold flex items-center justify-center gap-2 cursor-default">
-                        <Check size={20} /> Checked In
                     </button>
                 );
             }
@@ -220,6 +245,24 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                 );
             }
 
+            // Check for Team Details (applies to 'registered' and 'attended')
+            if (registration.teamName) {
+                return (
+                    <div className="flex flex-col gap-2 items-center w-full sm:w-auto">
+                        <button
+                            onClick={handleViewTeam}
+                            className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                        >
+                            <Users size={20} /> View Team
+                        </button>
+                        <span className="text-xs text-green-400 font-medium flex items-center gap-1">
+                            <Check size={12} /> Registration Confirmed
+                        </span>
+                    </div>
+                );
+            }
+
+            // Default fallback for Individual or Team-without-name (unlikely)
             return (
                 <button disabled className="px-8 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl font-bold flex items-center justify-center gap-2 cursor-default">
                     <Check size={20} /> Registered
@@ -456,6 +499,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             {showFeedback && selectedEvent && user && (
                 <FeedbackModal
                     eventId={selectedEvent.id}
+                    registrationId={registration?.id}
                     userId={user.uid}
                     userName={user.displayName || "User"}
                     onClose={() => setShowFeedback(false)}
@@ -469,6 +513,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                     existingRegistration={registration}
                     onClose={() => setShowTeamModal(false)}
                     onRegister={handleTeamRegistration}
+                    onStatusChange={() => checkStatus()}
                 />
             )}
         </div>
