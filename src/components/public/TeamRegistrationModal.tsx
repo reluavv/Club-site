@@ -56,24 +56,39 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
             return;
         }
 
+        let active = true;
+
         const timer = setTimeout(async () => {
             setSearching(true);
             try {
                 const results = await searchStudents(searchTerm);
-                // Filter out: self, already-invited students
-                const invitedUserIds = new Set(sentInvitations.map(i => i.targetUserId));
+                if (!active) return;
+
+                // Filter out: self, already-invited students, and students who requested to join
+                const interactedUserIds = new Set(sentInvitations.map(i =>
+                    i.type === 'request' ? i.senderId : i.targetUserId
+                ));
+
                 const filtered = results.filter(u =>
-                    u.uid !== userProfile.uid && !invitedUserIds.has(u.uid)
+                    u.uid !== userProfile.uid && !interactedUserIds.has(u.uid)
                 );
-                setSearchResults(filtered);
+
+                if (active) {
+                    setSearchResults(filtered);
+                }
             } catch (e) {
                 console.error(e);
             } finally {
-                setSearching(false);
+                if (active) {
+                    setSearching(false);
+                }
             }
         }, 400);
 
-        return () => clearTimeout(timer);
+        return () => {
+            active = false;
+            clearTimeout(timer);
+        };
     }, [searchTerm, teamCreated, userProfile.uid, sentInvitations]);
 
     // Subscribe to invitation statuses
