@@ -53,7 +53,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
         const docRef = doc(db, "users", uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            return docSnap.data() as UserProfile;
+            return { uid: docSnap.id, ...docSnap.data() } as UserProfile;
         }
         return null;
     } catch (error) {

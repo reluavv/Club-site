@@ -64,13 +64,14 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                 const results = await searchStudents(searchTerm);
                 if (!active) return;
 
-                // Filter out: self, already-invited students, and students who requested to join
-                const interactedUserIds = new Set(sentInvitations.map(i =>
-                    i.type === 'request' ? i.senderId : i.targetUserId
-                ));
+                // Filter out: self and ALREADY ACCEPTED members (who are now part of the team)
+                const teamMemberIds = new Set(sentInvitations
+                    .filter(i => i.status === 'accepted')
+                    .map(i => i.type === 'request' ? i.senderId : i.targetUserId)
+                );
 
                 const filtered = results.filter(u =>
-                    u.uid !== userProfile.uid && !interactedUserIds.has(u.uid)
+                    u.uid !== userProfile.uid && !teamMemberIds.has(u.uid)
                 );
 
                 if (active) {
@@ -471,25 +472,43 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                                 </div>
                                 {searchResults.length > 0 && (
                                     <div className="mt-2 bg-white/5 border border-white/10 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
-                                        {searchResults.map((student) => (
-                                            <div key={student.uid} className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors">
-                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                                                    {student.displayName?.charAt(0) || "?"}
+                                        {searchResults.map((student) => {
+                                            const existingInvite = sentInvitations.find(i =>
+                                                (i.type === 'invite' && i.targetUserId === student.uid && i.status === 'pending') ||
+                                                (i.type === 'request' && i.senderId === student.uid && i.status === 'pending')
+                                            );
+                                            const isSent = existingInvite?.type === 'invite';
+
+                                            return (
+                                                <div key={student.uid} className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 border-b border-white/5 last:border-0 transition-colors">
+                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                                                        {student.displayName?.charAt(0) || "?"}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-white text-sm font-medium truncate">{student.displayName || "Unknown"}</p>
+                                                        <p className="text-gray-500 text-xs">{student.rollNo || "No roll number"}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleInvite(student)}
+                                                        disabled={!!existingInvite || sendingTo === student.uid || !student.rollNo}
+                                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0 ${existingInvite
+                                                                ? 'bg-white/10 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-blue-600 hover:bg-blue-500 text-white'
+                                                            }`}
+                                                    >
+                                                        {sendingTo === student.uid ? (
+                                                            <Loader2 size={12} className="animate-spin" />
+                                                        ) : existingInvite ? (
+                                                            isSent ? "Sent" : "Req Pending"
+                                                        ) : (
+                                                            <>
+                                                                <Send size={12} /> Invite
+                                                            </>
+                                                        )}
+                                                    </button>
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-white text-sm font-medium truncate">{student.displayName}</p>
-                                                    <p className="text-gray-500 text-xs">{student.rollNo}</p>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleInvite(student)}
-                                                    disabled={sendingTo === student.uid || !student.rollNo}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 shrink-0"
-                                                >
-                                                    {sendingTo === student.uid ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                                                    Invite
-                                                </button>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                                 {searchTerm.length >= 2 && !searching && searchResults.length === 0 && (

@@ -22,7 +22,8 @@ export async function searchStudents(searchTerm: string): Promise<UserProfile[]>
 
     const results: UserProfile[] = [];
     snapshot.forEach((doc) => {
-        const user = doc.data() as UserProfile;
+        const data = doc.data();
+        const user = { uid: doc.id, ...data } as UserProfile;
         const nameMatch = user.displayName?.toLowerCase().includes(termLower);
         const rollMatch = user.rollNo?.toUpperCase().includes(termUpper);
 
