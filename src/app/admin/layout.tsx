@@ -15,7 +15,7 @@ export default function AdminLayout({
             <MobileRestriction />
 
             {/* Main Desktop Dashboard: Hidden on small screens to prevent layout thrashing behind the blocker */}
-            <div className="hidden lg:flex min-h-screen bg-[#0a0a0a] text-white">
+            <div className="hidden md:flex min-h-screen bg-[#0a0a0a] text-white">
                 <Sidebar />
                 <main className="flex-1 p-8 overflow-y-auto h-screen">
                     {children}

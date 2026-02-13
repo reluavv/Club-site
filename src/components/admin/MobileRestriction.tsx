@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function MobileRestriction() {
     return (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center lg:hidden">
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center md:hidden">
             <div className="w-full max-w-md space-y-8 relative">
 
                 {/* Visual Glitch Effect Container */}
