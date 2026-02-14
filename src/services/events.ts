@@ -86,3 +86,17 @@ export function subscribeToEvent(id: string, callback: (event: Event | null) => 
         }
     });
 }
+
+import { Feedback } from "@/types";
+import { where } from "firebase/firestore";
+
+export async function getEventFeedbacks(eventId: string): Promise<Feedback[]> {
+    try {
+        const q = query(collection(db, "feedbacks"), where("eventId", "==", eventId));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Feedback));
+    } catch (error) {
+        console.warn("Error fetching feedbacks:", error);
+        return [];
+    }
+}

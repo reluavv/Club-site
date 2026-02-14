@@ -154,15 +154,18 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             (registration.attendance && registration.attendance[user.uid])
         );
 
-        // Check Feedback Submission status
-        const isFeedbackSubmitted = registration && (
-            registration.feedbackSubmitted ||
-            (user && registration.feedbackMap && registration.feedbackMap[user.uid])
+        // Check Feedback Submission status (Refined for Teams)
+        const isFeedbackSubmitted = user && registration && (
+            (registration.feedbackMap && registration.feedbackMap[user.uid]) || // Explicit individual check (New)
+            (!registration.feedbackMap && registration.feedbackSubmitted) // Legacy fallback (only if map missing)
         );
 
         // 1. Check Feedback Phase (Prioritized if Active)
         if (selectedEvent.isFeedbackOpen) {
-            if (isAttended && !isFeedbackSubmitted) {
+            // Allow feedback if registered OR attended
+            const isEligibleForFeedback = isAttended || (registration && registration.status === 'registered');
+
+            if (isEligibleForFeedback && !isFeedbackSubmitted) {
                 return (
                     <button
                         onClick={() => setShowFeedback(true)}

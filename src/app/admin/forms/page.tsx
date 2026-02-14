@@ -224,6 +224,8 @@ export default function FormsDashboard() {
         convertToCSV(csvData, `${event.title.replace(/\s+/g, '_')}_Report`);
     };
 
+    const [selectedEventForFeedback, setSelectedEventForFeedback] = useState<Event | null>(null);
+
     return (
         <div className="max-w-6xl mx-auto text-white">
             <h1 className="text-3xl font-bold mb-8">Forms & Data</h1>
@@ -351,7 +353,13 @@ export default function FormsDashboard() {
                                         <Download size={16} />
                                     </button>
 
-
+                                    <button
+                                        onClick={() => setSelectedEventForFeedback(event)}
+                                        className="p-2 text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                                        title="View Feedback"
+                                    >
+                                        <MessageSquare size={16} />
+                                    </button>
 
                                     {profile?.role === 'CTO' && (
                                         <button
@@ -375,6 +383,16 @@ export default function FormsDashboard() {
                     </tbody>
                 </table>
             </div>
+
+            {selectedEventForFeedback && (
+                <FeedbackListModal
+                    eventId={selectedEventForFeedback.id}
+                    eventTitle={selectedEventForFeedback.title}
+                    onClose={() => setSelectedEventForFeedback(null)}
+                />
+            )}
         </div>
     );
 }
+
+import FeedbackListModal from "@/components/admin/FeedbackListModal";
