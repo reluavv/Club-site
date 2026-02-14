@@ -55,7 +55,17 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         } finally {
             setCheckingStatus(false);
         }
-    }, [selectedEvent, user]);
+    }, [selectedEvent?.id, user]);
+
+    // Update selectedEvent when events changes (Fix for live feedback toggle)
+    useEffect(() => {
+        if (selectedEvent) {
+            const updated = events.find(e => e.id === selectedEvent.id);
+            if (updated && JSON.stringify(updated) !== JSON.stringify(selectedEvent)) {
+                setSelectedEvent(updated);
+            }
+        }
+    }, [events]);
 
     // Initial check when selecting an event
     useEffect(() => {
@@ -163,7 +173,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         // 1. Check Feedback Phase (Prioritized if Active)
         if (selectedEvent.isFeedbackOpen) {
             // Allow feedback if registered OR attended
-            const isEligibleForFeedback = isAttended || (registration && registration.status === 'registered');
+            const isEligibleForFeedback = isAttended || (registration && ['registered', 'attended'].includes(registration.status));
 
             if (isEligibleForFeedback && !isFeedbackSubmitted) {
                 return (
