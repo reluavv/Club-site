@@ -73,25 +73,18 @@ export default function FormsDashboard() {
     };
 
     const handleStartEvent = async (event: Event) => {
-        if (!confirm(`Start Event "${event.title}"?\n\nThis will mark the event as ONGOING and allow you to start attendance.`)) return;
+        if (!confirm(`Start Event "${event.title}"?\n\nThis will mark the event as ONGOING and CLOSE registrations.\n\nNote: You must manually click "START" under Attendance when you are ready.`)) return;
 
-        // Auto-start attendance if not already active? 
-        // User said: "once started... then from here everything will go individual" matches attendance flow.
-        // Let's just set status='ongoing'. Admin can then click "Start Attendance" or we can do it auto.
-        // Let's do it AUTO for convenience, but safe.
+        // 1. Set Status to Ongoing
+        // 2. Close Registrations
+        // 3. DO NOT start attendance automatically.
 
-        const updates: any = { status: 'ongoing' };
+        await updateEvent(event.id, {
+            status: 'ongoing',
+            registrationStatus: 'closed'
+        });
 
-        // Optional: Auto-generate attendance code if missing
-        if (!event.attendanceCode) {
-            const code = Math.floor(1000 + Math.random() * 9000).toString();
-            updates.attendanceCode = code;
-            updates.attendanceStatus = 'active';
-            alert(`Event Started! Attendance is now ACTIVE. Code: ${code}`);
-        }
-
-        await updateEvent(event.id, updates);
-        await logActivity(profile?.uid!, profile?.displayName || "Admin", `Started Event: ${event.title}`);
+        await logActivity(profile?.uid!, profile?.displayName || "Admin", `Started Event (Ongoing): ${event.title}`);
         loadData();
     };
 
@@ -284,7 +277,7 @@ export default function FormsDashboard() {
                                 <td className="p-4">
                                     <div className="flex flex-col gap-2 items-start">
                                         <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${event.status === 'ongoing' ? 'bg-green-500 text-black animate-pulse' :
-                                                (event.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400')
+                                            (event.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400')
                                             }`}>
                                             {event.status}
                                         </span>

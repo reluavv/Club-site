@@ -187,15 +187,23 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             // If not attended, fall through...
         }
 
-        // 2. Check Attendance Phase (Prioritized if ONGOING or Code is Active)
-        if (selectedEvent.status === 'ongoing' || (selectedEvent.attendanceCode && registration)) {
+        // 2. Check Attendance Phase (Prioritized if Code is Active)
+        // User update: "Start Event" != "Start Attendance".
+        // So we only show Check In if attendanceCode exists (implied active) OR attendanceStatus is active.
+        // Even if status is 'ongoing', we wait for the Admin to click "Start Attendance" (which generates the code).
+
+        const isAttendanceActive = selectedEvent.attendanceStatus === 'active' || !!selectedEvent.attendanceCode;
+
+        if (isAttendanceActive && registration) {
             if (isAttended) {
                 return (
                     <button disabled className="px-8 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl font-bold flex items-center justify-center gap-2 cursor-default">
                         <Check size={20} /> Checked In
                     </button>
                 );
-            } else if (registration.status === 'registered') { // Eligible to check in
+            } else if (registration.status === 'registered' || registration.status === 'attended') {
+                // Note: 'attended' status users might re-open modal to see code? No, usually disabled above.
+                // But if local logic fails, this catches it.
                 return (
                     <button
                         onClick={() => setShowCheckIn(true)}
