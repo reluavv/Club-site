@@ -44,7 +44,15 @@ export default function FormsDashboard() {
 
         // Sort: Active/Open events first, then by date
         const sorted = data.sort((a, b) => {
+            // Priority 1: Registration Open
+            if (a.registrationStatus === 'open' && b.registrationStatus !== 'open') return -1;
+            if (a.registrationStatus !== 'open' && b.registrationStatus === 'open') return 1;
+
+            // Priority 2: Upcoming vs Past
             if (a.status === 'upcoming' && b.status === 'past') return -1;
+            if (a.status === 'past' && b.status === 'upcoming') return 1;
+
+            // Priority 3: Date (Newest first)
             return b.date.localeCompare(a.date);
         });
         setEvents(sorted);
@@ -61,10 +69,9 @@ export default function FormsDashboard() {
     };
 
     const handleToggleRegistration = async (event: Event) => {
-        // 1. Block if event is past (Yesterday or before)
+        // 1. Warn if event is past (Yesterday or before)
         if (isEventPast(event.date)) {
-            alert("Cannot modify registration for past events.");
-            return;
+            if (!confirm(`This event is in the past (${event.date}). Are you sure you want to modify registration?`)) return;
         }
 
         // 2. Logic: Open/Close toggle
@@ -73,13 +80,10 @@ export default function FormsDashboard() {
             await updateEvent(event.id, { registrationStatus: 'open' });
             await logActivity(profile?.uid!, profile?.displayName || "Admin", `Opened registrations for: ${event.title}`);
         } else if (event.registrationStatus === 'open') {
-            // 3. Exception: Registration can be re-opened ONLY IF event is in future (or today).
-            // Since we already blocked "past" events at start, we just confirm closure here.
             if (!confirm(`Close registrations for "${event.title}"?`)) return;
             await updateEvent(event.id, { registrationStatus: 'closed' });
             await logActivity(profile?.uid!, profile?.displayName || "Admin", `Closed registrations for: ${event.title}`);
         } else if (event.registrationStatus === 'closed') {
-            // Allow re-opening if not past (already checked above)
             if (!confirm(`Re-open registrations for "${event.title}"?`)) return;
             await updateEvent(event.id, { registrationStatus: 'open' });
             await logActivity(profile?.uid!, profile?.displayName || "Admin", `Re-opened registrations for: ${event.title}`);
@@ -89,62 +93,49 @@ export default function FormsDashboard() {
 
     const handleToggleAttendance = async (event: Event) => {
         if (isEventPast(event.date)) {
-            alert("Cannot manage attendance for past events.");
-            return;
+            if (!confirm(`This event is in the past. Modify attendance anyway?`)) return;
         }
 
-        // ONE-WAY FLOW: upcoming -> active -> ended
+        // ONE-WAY FLOW -> Now Cyclical (Restartable)
         const currentStatus = event.attendanceStatus || 'upcoming';
 
-        if (currentStatus === 'ended') {
-            alert("Attendance has successfully ended. It cannot be restarted.");
-            return;
-        }
-
-        if (currentStatus === 'upcoming') {
-            // Start
+        if (currentStatus === 'upcoming' || currentStatus === 'ended') {
+            // Start / Restart
+            const action = currentStatus === 'ended' ? "RESTART" : "Start";
             const code = Math.floor(1000 + Math.random() * 9000).toString();
-            if (!confirm(`Start attendance for "${event.title}"? Code: ${code}`)) return;
+
+            if (!confirm(`${action} attendance for "${event.title}"? New Code: ${code}`)) return;
+
             await updateEvent(event.id, { attendanceCode: code, attendanceStatus: 'active' });
-            await logActivity(profile?.uid!, profile?.displayName || "Admin", `Started attendance for: ${event.title}`);
+            await logActivity(profile?.uid!, profile?.displayName || "Admin", `${action}ed attendance for: ${event.title}`);
         } else if (currentStatus === 'active') {
-            // Stop (Final)
-            if (!confirm(`STOP attendance for "${event.title}"?\n\nThis is IRREVERSIBLE. You cannot restart it.`)) return;
+            // Stop
+            if (!confirm(`STOP attendance for "${event.title}"?`)) return;
             await updateEvent(event.id, { attendanceCode: '', attendanceStatus: 'ended' });
             await logActivity(profile?.uid!, profile?.displayName || "Admin", `Ended attendance for: ${event.title}`);
         } else {
-            // Fallback for transition from old system where status might be missing but code exists
-            if (event.attendanceCode) {
-                if (!confirm(`STOP attendance for "${event.title}"?\n\nThis is IRREVERSIBLE.`)) return;
-                await updateEvent(event.id, { attendanceCode: '', attendanceStatus: 'ended' });
-            } else {
-                const code = Math.floor(1000 + Math.random() * 9000).toString();
-                if (!confirm(`Start attendance for "${event.title}"? Code: ${code}`)) return;
-                await updateEvent(event.id, { attendanceCode: code, attendanceStatus: 'active' });
-            }
+            // Fallback (Active but weird state)
+            if (!confirm(`STOP attendance for "${event.title}"?`)) return;
+            await updateEvent(event.id, { attendanceCode: '', attendanceStatus: 'ended' });
         }
         loadData();
     };
 
     const handleToggleFeedback = async (event: Event) => {
         if (isEventPast(event.date)) {
-            alert("Cannot manage feedback for past events.");
-            return;
+            if (!confirm(`This event is in the past. Modify feedback anyway?`)) return;
         }
 
         const currentStatus = event.feedbackStatus || (event.isFeedbackOpen ? 'active' : 'upcoming');
 
-        if (currentStatus === 'ended') {
-            alert("Feedback has ended. It cannot be restarted.");
-            return;
-        }
+        if (currentStatus === 'upcoming' || currentStatus === 'ended') {
+            const action = currentStatus === 'ended' ? "RE-OPEN" : "Open";
+            if (!confirm(`${action} feedback for "${event.title}"?`)) return;
 
-        if (currentStatus === 'upcoming') {
-            if (!confirm(`Open feedback for "${event.title}"?`)) return;
             await updateEvent(event.id, { isFeedbackOpen: true, feedbackStatus: 'active' });
-            await logActivity(profile?.uid!, profile?.displayName || "Admin", `Opened feedback for: ${event.title}`);
+            await logActivity(profile?.uid!, profile?.displayName || "Admin", `${action}ed feedback for: ${event.title}`);
         } else if (currentStatus === 'active') {
-            if (!confirm(`CLOSE feedback for "${event.title}"?\n\nThis is IRREVERSIBLE.`)) return;
+            if (!confirm(`CLOSE feedback for "${event.title}"?`)) return;
             await updateEvent(event.id, { isFeedbackOpen: false, feedbackStatus: 'ended' });
             await logActivity(profile?.uid!, profile?.displayName || "Admin", `Closed feedback for: ${event.title}`);
         }
@@ -242,13 +233,13 @@ export default function FormsDashboard() {
                                 <td className="p-4">
                                     <button
                                         onClick={() => handleToggleAttendance(event)}
-                                        disabled={!event.registrationStatus || event.registrationStatus === 'upcoming' || event.attendanceStatus === 'ended'}
+                                        disabled={!event.registrationStatus || event.registrationStatus === 'upcoming'}
                                         className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${event.attendanceStatus === 'active' || (event.attendanceCode && !event.attendanceStatus)
                                             ? 'bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30'
-                                            : (event.attendanceStatus === 'ended' ? 'bg-gray-500/10 text-gray-500 border-gray-600' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30')
+                                            : (event.attendanceStatus === 'ended' ? 'bg-gray-500/10 text-gray-500 border-gray-600 hover:border-white/50 hover:text-white' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30')
                                             }`}
                                     >
-                                        {event.attendanceStatus === 'ended' ? 'ENDED' : (
+                                        {event.attendanceStatus === 'ended' ? 'RESTART' : (
                                             event.attendanceStatus === 'active' || event.attendanceCode ? <><StopCircle size={14} /> STOP ({event.attendanceCode})</> : <><Play size={14} /> START</>
                                         )}
                                     </button>
@@ -256,13 +247,13 @@ export default function FormsDashboard() {
                                 <td className="p-4">
                                     <button
                                         onClick={() => handleToggleFeedback(event)}
-                                        disabled={!event.registrationStatus || event.registrationStatus === 'upcoming' || event.feedbackStatus === 'ended'}
+                                        disabled={!event.registrationStatus || event.registrationStatus === 'upcoming'}
                                         className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${event.feedbackStatus === 'active' || (event.isFeedbackOpen && !event.feedbackStatus)
                                             ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 hover:bg-yellow-500/30'
-                                            : (event.feedbackStatus === 'ended' ? 'bg-gray-500/10 text-gray-500 border-gray-600' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30')
+                                            : (event.feedbackStatus === 'ended' ? 'bg-gray-500/10 text-gray-500 border-gray-600 hover:border-white/50 hover:text-white' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30')
                                             }`}
                                     >
-                                        {event.feedbackStatus === 'ended' ? 'ENDED' : (
+                                        {event.feedbackStatus === 'ended' ? 'RESTART' : (
                                             event.feedbackStatus === 'active' || event.isFeedbackOpen ? <><StopCircle size={14} /> STOP</> : <><Play size={14} /> START</>
                                         )}
                                     </button>

@@ -139,18 +139,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
     // Helper to render the correct action button
     const renderActionButton = () => {
-        if (!selectedEvent || selectedEvent.status !== 'upcoming') {
-            // Past Event
-            return (
-                <Link
-                    href={`/events/${selectedEvent?.id}`}
-                    className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-                >
-                    View Event Gallery & Report <ExternalLink size={18} />
-                </Link>
-            );
-        }
-
+        if (!selectedEvent) return null;
         if (checkingStatus) {
             return (
                 <button disabled className="px-8 py-3 bg-white/5 rounded-xl text-white font-bold flex items-center justify-center">
@@ -171,7 +160,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             (user && registration.feedbackMap && registration.feedbackMap[user.uid])
         );
 
-        // 1. Check Feedback Phase
+        // 1. Check Feedback Phase (Prioritized if Active)
         if (selectedEvent.isFeedbackOpen) {
             if (isAttended && !isFeedbackSubmitted) {
                 return (
@@ -194,17 +183,8 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                         </Link>
                     </div>
                 );
-            } else {
-                // Not attended or not registered (and feedback open)
-                return (
-                    <Link
-                        href={`/events/${selectedEvent.id}`}
-                        className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-                    >
-                        View Details
-                    </Link>
-                );
             }
+            // If not attended, fall through...
         }
 
         // 2. Check Attendance Phase
@@ -227,7 +207,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             }
         }
 
-        // 3. Registration Phase
+        // 3. Registration Phase (Already Registered)
         if (registration) {
             if (registration.status === 'forming') {
                 return (
@@ -270,18 +250,17 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             );
         }
 
-        // Not registered
+        // 4. Not Registered - Check Open Status (Prioritized over Past Status)
+
+        // Check if explicitly open (Admin override) OR window is valid
         const isWindowOpen = isRegistrationWindowOpen(selectedEvent.date);
+        const isOpen = selectedEvent.registrationStatus === 'open';
+
+        if (isOpen) {
+            // Admin forced open -> Ignore date check
+        }
 
         if (selectedEvent.registrationStatus === 'open') {
-            if (!isWindowOpen) {
-                return (
-                    <button disabled className="px-8 py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed">
-                        <X size={20} /> Registrations Closed (Deadline Passed)
-                    </button>
-                );
-            }
-
             return (
                 <div className="flex flex-col gap-2 w-full sm:w-auto">
                     <button
@@ -298,7 +277,22 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                     )}
                 </div>
             );
-        } else if (selectedEvent.registrationStatus === 'closed') {
+        }
+
+        // 5. Past Event (Only if NOT open)
+        if (selectedEvent.status !== 'upcoming') {
+            return (
+                <Link
+                    href={`/events/${selectedEvent?.id}`}
+                    className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                >
+                    View Event Gallery & Report <ExternalLink size={18} />
+                </Link>
+            );
+        }
+
+        // 6. Closed / Upcoming
+        if (selectedEvent.registrationStatus === 'closed') {
             return (
                 <button disabled className="px-8 py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed">
                     <X size={20} /> Registrations Closed

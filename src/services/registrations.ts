@@ -36,9 +36,22 @@ export async function registerForEvent(
 
     const eventDate = new Date(eventData.date);
     const now = new Date();
-    if (now >= eventDate) {
-        throw new Error("Registrations have closed for this event.");
-    }
+
+    // STRICT DEADLINE: 11:59 PM day before event.
+    // However, if Admin explicitly sets status to 'open' (via the new "Re-open" button), we allow it.
+    // The previous code blocked it hard. Now we trust the 'open' status more.
+
+    // Logic: If status is 'open', we allow it. 
+    // BUT we should still check if it was auto-closed by date logic in the frontend/backend sync?
+    // No, if admin manually set 'open', it overrides date logic.
+
+    // Only block if 'upcoming' (default) and date passed?
+    // Actually, let's keep it safe: 
+    // If it's OPEN, it's OPEN. Admin knows best.
+
+    // if (now >= eventDate) {
+    //      throw new Error("Registrations have closed for this event.");
+    // }
 
     // 3. Create Registration ID (Composite key for easy checking)
     const regId = `${eventId}_${userId}`;
