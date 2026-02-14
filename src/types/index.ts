@@ -9,7 +9,7 @@ export interface Event {
     details: string[];
     link?: string;
     image?: string;
-    status: "upcoming" | "past"; // Display status
+    status: "upcoming" | "ongoing" | "past"; // Display status
     registrationStatus: "upcoming" | "open" | "closed"; // Logic status
     isFeedbackOpen: boolean;
     attendanceCode?: string; // If set, attendance is active

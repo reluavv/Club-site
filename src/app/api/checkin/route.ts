@@ -102,8 +102,11 @@ export async function POST(request: Request) {
                 attendance: { [userId]: true }
             }, { merge: true });
         } else {
-            // Individual: Use Status (Legacy compatibility)
-            await setDoc(regRef, { status: 'attended' }, { merge: true });
+            // Individual: Use Status (Legacy) AND Map (Future-proof/Consistency)
+            await setDoc(regRef, {
+                status: 'attended',
+                attendance: { [userId]: true }
+            }, { merge: true });
         }
 
         return NextResponse.json({ success: true });

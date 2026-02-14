@@ -44,6 +44,10 @@ export default function FormsDashboard() {
 
         // Sort: Active/Open events first, then by date
         const sorted = data.sort((a, b) => {
+            // Priority 0: ONGOING (Live) Events
+            if (a.status === 'ongoing' && b.status !== 'ongoing') return -1;
+            if (a.status !== 'ongoing' && b.status === 'ongoing') return 1;
+
             // Priority 1: Registration Open
             if (a.registrationStatus === 'open' && b.registrationStatus !== 'open') return -1;
             if (a.registrationStatus !== 'open' && b.registrationStatus === 'open') return 1;
@@ -68,7 +72,38 @@ export default function FormsDashboard() {
         return eventDate < today;
     };
 
+    const handleStartEvent = async (event: Event) => {
+        if (!confirm(`Start Event "${event.title}"?\n\nThis will mark the event as ONGOING and allow you to start attendance.`)) return;
+
+        // Auto-start attendance if not already active? 
+        // User said: "once started... then from here everything will go individual" matches attendance flow.
+        // Let's just set status='ongoing'. Admin can then click "Start Attendance" or we can do it auto.
+        // Let's do it AUTO for convenience, but safe.
+
+        const updates: any = { status: 'ongoing' };
+
+        // Optional: Auto-generate attendance code if missing
+        if (!event.attendanceCode) {
+            const code = Math.floor(1000 + Math.random() * 9000).toString();
+            updates.attendanceCode = code;
+            updates.attendanceStatus = 'active';
+            alert(`Event Started! Attendance is now ACTIVE. Code: ${code}`);
+        }
+
+        await updateEvent(event.id, updates);
+        await logActivity(profile?.uid!, profile?.displayName || "Admin", `Started Event: ${event.title}`);
+        loadData();
+    };
+
+    const handleEndEvent = async (event: Event) => {
+        if (!confirm(`End Event "${event.title}"?\n\nThis will mark the event as PAST.`)) return;
+        await updateEvent(event.id, { status: 'past', registrationStatus: 'closed', attendanceStatus: 'ended' });
+        await logActivity(profile?.uid!, profile?.displayName || "Admin", `Ended Event: ${event.title}`);
+        loadData();
+    };
+
     const handleToggleRegistration = async (event: Event) => {
+        // ... (existing logic)
         // 1. Warn if event is past (Yesterday or before)
         if (isEventPast(event.date)) {
             if (!confirm(`This event is in the past (${event.date}). Are you sure you want to modify registration?`)) return;
@@ -149,19 +184,51 @@ export default function FormsDashboard() {
             return;
         }
 
-        // Flatten data for CSV
-        const csvData = regs.map(r => ({
-            Name: r.userDetails.name,
-            RollNo: r.userDetails.rollNo,
-            Mobile: r.userDetails.mobile,
-            Class: r.userDetails.class,
-            Section: r.userDetails.section,
-            Status: r.status,
-            FeedbackGiven: r.feedbackSubmitted ? 'Yes' : 'No',
-            RegisteredAt: r.registeredAt?.toDate().toLocaleString()
-        }));
+        // Flatten data for CSV (Include Team Members)
+        const csvData: any[] = [];
 
-        convertToCSV(csvData, `${event.title}_registrations`);
+        regs.forEach(r => {
+            // 1. Leader / Individual
+            const isLeaderAttended = (r.attendance && r.attendance[r.userId]) || r.status === 'attended';
+            const isLeaderFeedback = (r.feedbackMap && r.feedbackMap[r.userId]) || (r.feedbackSubmitted && !r.teamName); // Fallback for legacy individuals
+
+            csvData.push({
+                Type: r.teamName ? 'Team Leader' : 'Individual',
+                TeamName: r.teamName || '-',
+                Name: r.userDetails.name,
+                RollNo: r.userDetails.rollNo,
+                Mobile: r.userDetails.mobile,
+                Class: r.userDetails.class || '-',
+                Section: r.userDetails.section || '-',
+                Status: isLeaderAttended ? 'Attended' : r.status,
+                Feedback: isLeaderFeedback ? 'Yes' : 'No',
+                RegisteredAt: r.registeredAt?.toDate().toLocaleString() || '-'
+            });
+
+            // 2. Team Members
+            if (r.teamMembers && r.teamMembers.length > 0) {
+                r.teamMembers.forEach(member => {
+                    const memberId = member.userId;
+                    const isMemberAttended = memberId ? (r.attendance && r.attendance[memberId]) : false;
+                    const isMemberFeedback = memberId ? (r.feedbackMap && r.feedbackMap[memberId]) : false;
+
+                    csvData.push({
+                        Type: 'Team Member',
+                        TeamName: r.teamName || '-',
+                        Name: member.name,
+                        RollNo: member.rollNo,
+                        Mobile: '-', // Not stored in teamMembers array usually
+                        Class: '-',
+                        Section: '-',
+                        Status: isMemberAttended ? 'Attended' : 'Registered',
+                        Feedback: isMemberFeedback ? 'Yes' : 'No',
+                        RegisteredAt: r.registeredAt?.toDate().toLocaleString() || '-'
+                    });
+                });
+            }
+        });
+
+        convertToCSV(csvData, `${event.title.replace(/\s+/g, '_')}_Report`);
     };
 
     return (
@@ -215,9 +282,32 @@ export default function FormsDashboard() {
                                     <p className="text-xs text-gray-400">{event.date}</p>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${event.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400'}`}>
-                                        {event.status}
-                                    </span>
+                                    <div className="flex flex-col gap-2 items-start">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${event.status === 'ongoing' ? 'bg-green-500 text-black animate-pulse' :
+                                                (event.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400')
+                                            }`}>
+                                            {event.status}
+                                        </span>
+
+                                        {event.status === 'upcoming' && (
+                                            <button
+                                                onClick={() => handleStartEvent(event)}
+                                                className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors"
+                                                title="Mark as ONGOING"
+                                            >
+                                                <Play size={12} fill="currentColor" /> Start Event
+                                            </button>
+                                        )}
+                                        {event.status === 'ongoing' && (
+                                            <button
+                                                onClick={() => handleEndEvent(event)}
+                                                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
+                                                title="End Event"
+                                            >
+                                                <StopCircle size={12} fill="currentColor" /> End Event
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="p-4">
                                     <button

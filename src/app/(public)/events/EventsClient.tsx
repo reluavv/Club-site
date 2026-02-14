@@ -187,8 +187,8 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             // If not attended, fall through...
         }
 
-        // 2. Check Attendance Phase
-        if (selectedEvent.attendanceCode && registration) {
+        // 2. Check Attendance Phase (Prioritized if ONGOING or Code is Active)
+        if (selectedEvent.status === 'ongoing' || (selectedEvent.attendanceCode && registration)) {
             if (isAttended) {
                 return (
                     <button disabled className="px-8 py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl font-bold flex items-center justify-center gap-2 cursor-default">
