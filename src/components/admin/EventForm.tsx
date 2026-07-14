@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createEvent, updateEvent, Event } from "@/lib/api";
 import ImageUpload from "@/components/ui/ImageUpload";
 import { Sparkles, Save, X, Calendar } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 interface EventFormProps {
     initialData?: Event;
@@ -15,6 +16,7 @@ interface EventFormProps {
 export default function EventForm({ initialData, isEdit = false }: EventFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
     const [formData, setFormData] = useState<Omit<Event, "id"> | Event>(
         {
             title: initialData?.title || "",
@@ -67,7 +69,7 @@ export default function EventForm({ initialData, isEdit = false }: EventFormProp
             router.refresh();
         } catch (error) {
             console.error("Failed to save event", error);
-            alert("Failed to save event. Check console.");
+            toast.error("Failed to save event. Check console.");
             setLoading(false);
         }
     };

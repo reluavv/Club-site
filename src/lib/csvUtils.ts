@@ -1,6 +1,6 @@
 export function convertToCSV(data: any[], filename: string) {
     if (!data.length) {
-        alert("No data to export");
+        console.warn("No data to export");
         return;
     }
 

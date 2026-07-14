@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { getAllAdmins, deleteAdmin, AdminProfile, PendingRegistration, getPendingRegistrations, approveRegistration, rejectRegistration, subscribeToAllAdmins, subscribeToPendingRegistrations, logActivity, updateAdminRole, createAdminDirectly } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/serverAuth";
 import { Check, X, Shield, Trash2, User } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AdminUsersPage() {
     const { profile } = useAuth();
+    const toast = useToast();
     const [admins, setAdmins] = useState<AdminProfile[]>([]);
     const [pendingRegs, setPendingRegs] = useState<PendingRegistration[]>([]);
     const [loading, setLoading] = useState(true);
@@ -21,12 +24,12 @@ export default function AdminUsersPage() {
         setLoading(true);
         try {
             await createAdminDirectly(createForm.email, createForm.password, createForm.role, profile?.uid, profile?.displayName);
-            alert("Admin created successfully!");
+            toast.success("Admin created successfully!");
             setShowCreateModal(false);
             setCreateForm({ email: "", password: "", role: "Activator" }); // Reset
         } catch (err: any) {
             console.error(err);
-            alert("Failed to create admin: " + err.message);
+            toast.error("Failed to create admin: " + err.message);
         } finally {
             setLoading(false);
         }
@@ -63,11 +66,12 @@ export default function AdminUsersPage() {
             const subject = "ReLU Admin Access Approved";
             const body = `Congratulations! Your request to join the ReLU Admin Team has been approved.\n\nPlease log in at https://relu.club/admin/login to complete your onboarding.`;
 
-            // Send Email via API
+            // Send Email via API (with auth token)
             try {
+                const authHeaders = await getAuthHeaders();
                 await fetch('/api/send-email', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
                     body: JSON.stringify({
                         to: reg.email,
                         subject,
@@ -77,7 +81,7 @@ export default function AdminUsersPage() {
                 });
             } catch (err) {
                 console.error("Failed to send email", err);
-                alert("User approved, but failed to send email.");
+                toast.warning("User approved, but failed to send email.");
             }
 
             const adminName = profile?.displayName || "CTO";
@@ -88,10 +92,10 @@ export default function AdminUsersPage() {
             // I should REMOVE the manual log here to avoid duplicates.
             // await logActivity(profile?.uid!, adminName, `Approved admin registration for: ${reg.email}`);
 
-            alert("User approved!");
+            toast.success("User approved!");
         } catch (e) {
             console.error(e);
-            alert("Error approving user");
+            toast.error("Error approving user");
         }
     };
 
@@ -104,11 +108,12 @@ export default function AdminUsersPage() {
             const subject = "ReLU Admin Access Update";
             const body = "Your request to join the ReLU Admin Team has been declined at this time.\n\nIf you believe this is an error, please contact the club president.";
 
-            // Send Email via API
+            // Send Email via API (with auth token)
             try {
+                const authHeaders = await getAuthHeaders();
                 await fetch('/api/send-email', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
                     body: JSON.stringify({
                         to: reg.email,
                         subject,
@@ -125,7 +130,7 @@ export default function AdminUsersPage() {
             // await logActivity(adminName, `Rejected admin registration for: ${reg.email}`);
         } catch (e) {
             console.error(e);
-            alert("Error rejecting user");
+            toast.error("Error rejecting user");
         }
     };
 
@@ -147,11 +152,11 @@ export default function AdminUsersPage() {
         try {
             // Needed to import updateAdminRole
             await updateAdminRole(targetUid, newRole, profile?.uid, profile?.displayName || "Admin");
-            alert("Role updated successfully!");
+            toast.success("Role updated successfully!");
             setEditingAdmin(null);
         } catch (e: any) {
             console.error(e);
-            alert("Failed: " + e.message);
+            toast.error("Failed: " + e.message);
         }
     };
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { uploadImage } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 interface ImageUploadProps {
     path: string;
@@ -14,6 +15,7 @@ export default function ImageUpload({ path, onUpload, currentImage }: ImageUploa
     const [preview, setPreview] = useState(currentImage || "");
     const [dragging, setDragging] = useState(false);
     const [progress, setProgress] = useState(0);
+    const toast = useToast();
 
     const handleFile = async (file: File) => {
         if (!file) return;
@@ -25,7 +27,7 @@ export default function ImageUpload({ path, onUpload, currentImage }: ImageUploa
             onUpload(url);
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Failed to upload image");
+            toast.error("Failed to upload image");
         } finally {
             setUploading(false);
         }

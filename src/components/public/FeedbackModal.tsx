@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Loader2, Star } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 import { submitFeedback } from "@/lib/api";
 import { Feedback } from "@/types";
 
@@ -28,6 +29,7 @@ export default function FeedbackModal({ eventId, registrationId, userId, userNam
     const [matrixRatings, setMatrixRatings] = useState<Record<string, number>>({});
     const [opinion, setOpinion] = useState("");
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
 
     const handleMatrixChange = (key: string, value: number) => {
         setMatrixRatings(prev => ({ ...prev, [key]: value }));
@@ -55,7 +57,7 @@ export default function FeedbackModal({ eventId, registrationId, userId, userNam
             onClose();
         } catch (e) {
             console.error(e);
-            alert("Failed to submit feedback.");
+            toast.error("Failed to submit feedback.");
         } finally {
             setLoading(false);
         }

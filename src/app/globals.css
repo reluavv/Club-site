@@ -162,3 +162,48 @@ html {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.4);
 }
+
+/* --- Accessibility: Reduced Motion --- */
+@media (prefers-reduced-motion: reduce) {
+    .star,
+    .shooting-star {
+        animation: none !important;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* --- Accessibility: Skip Link --- */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    z-index: 999;
+    padding: 12px 24px;
+    background: #1a1a2e;
+    color: #fff;
+    border: 2px solid #6366f1;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+    top: 16px;
+}
+
+/* --- Accessibility: Focus Visible --- */
+*:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 4px;
+}

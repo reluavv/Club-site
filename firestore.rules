@@ -93,12 +93,22 @@ service cloud.firestore {
     }
 
     // Messages (Contact Form)
-    // - Public Create (anyone can send a message)
+    // - Public Create (anyone can send a message, but must have valid fields)
     // - Admin Read/Delete
     // - NO Public Read
     // - NO Public Update
     match /messages/{document} {
-      allow create: if true; // Anyone can send a message
+      allow create: if true
+        && request.resource.data.keys().hasAll(['name', 'email', 'subject', 'message', 'timestamp'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.email is string
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 200
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 2000;
       allow read, delete: if isAdmin();
       allow update: if false; // Messages are immutable
     }

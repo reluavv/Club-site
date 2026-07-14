@@ -1,20 +1,33 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { verifyAuthToken } from '@/lib/serverAuth';
 
 export async function POST(request: Request) {
     try {
-        const { eventId, userId, code } = await request.json();
+        // 1. Verify Firebase Auth token — extract userId from verified token
+        const authResult = await verifyAuthToken(request);
+        if (!authResult) {
+            return NextResponse.json(
+                { error: 'Unauthorized — valid authentication required' },
+                { status: 401 }
+            );
+        }
+
+        // userId comes from the verified token, NOT the request body
+        const userId = authResult.uid;
+
+        const { eventId, code } = await request.json();
 
         // Validate input
-        if (!eventId || !userId || !code) {
+        if (!eventId || !code) {
             return NextResponse.json(
-                { error: 'Missing required fields: eventId, userId, code' },
+                { error: 'Missing required fields: eventId, code' },
                 { status: 400 }
             );
         }
 
-        // 1. Fetch event to get the real attendance code (server-side only)
+        // 2. Fetch event to get the real attendance code (server-side only)
         const eventRef = doc(db, 'events', eventId);
         const eventSnap = await getDoc(eventRef);
 
@@ -27,7 +40,7 @@ export async function POST(request: Request) {
 
         const eventData = eventSnap.data();
 
-        // 2. Check if attendance is active
+        // 3. Check if attendance is active
         if (!eventData.attendanceCode) {
             return NextResponse.json(
                 { error: 'Attendance is not active for this event' },
@@ -35,7 +48,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // 3. Validate the code
+        // 4. Validate the code
         if (code !== eventData.attendanceCode) {
             return NextResponse.json(
                 { error: 'Incorrect code. Please try again.' },
@@ -43,7 +56,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // 4. Verify the user is registered (Check Individual then Team)
+        // 5. Verify the user is registered (Check Individual then Team)
         let regRef;
         let regData;
 
@@ -88,14 +101,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // 5. Mark as attended
-        // If team event (or just to be safe), use attendance map for specific user
-        // If individual event, we can also set global status, but map is more robust.
-        // Let's do BOTH for individual (if maxTeamSize=1) or just Map?
-        // To allow "EventsClient" to work without massive changes, we:
-        // - If individual (no teamName), set status='attended' (preserves existing flow compatibility)
-        // - If team, set attendance map.
-
+        // 6. Mark as attended
         if (regData.teamName) {
             // Team: Use Map
             await setDoc(regRef, {

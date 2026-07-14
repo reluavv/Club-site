@@ -4,11 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { updateAdminProfileData, uploadImage } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 export default function OnboardingPage() {
     const { user, profile } = useAuth();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
     const [progress, setProgress] = useState(0);
 
     const [formData, setFormData] = useState({
@@ -50,7 +52,7 @@ export default function OnboardingPage() {
             window.location.href = "/admin"; // Full reload to refresh auth state/guard
         } catch (error) {
             console.error("Onboarding failed:", error);
-            alert("Failed to save profile. Please try again.");
+            toast.error("Failed to save profile. Please try again.");
         } finally {
             setLoading(false);
         }

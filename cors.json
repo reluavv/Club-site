@@ -1,7 +1,9 @@
 [
     {
         "origin": [
-            "*"
+            "https://relu-website-service-735268143198.us-central1.run.app",
+            "https://relu.club",
+            "http://localhost:3000"
         ],
         "method": [
             "GET",

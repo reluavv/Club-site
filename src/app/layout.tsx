@@ -2,24 +2,26 @@ import type { Metadata } from "next";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import AnalyticsListener from "@/components/AnalyticsListener";
+import { APP_METADATA } from "@/lib/constants";
+import Providers from "./providers";
 
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space" });
 
 export const metadata: Metadata = {
-    metadataBase: new URL("https://relu.club"),
+    metadataBase: new URL(APP_METADATA.SITE_URL),
     title: {
-        template: "%s | ReLU - AI&ML Student Club",
-        default: "ReLU - AI&ML Student Club",
+        template: `%s | ${APP_METADATA.SITE_NAME}`,
+        default: APP_METADATA.SITE_NAME,
     },
-    description: "Refining Logic and Unleashing AI. The official AI/ML student community hub.",
+    description: APP_METADATA.SITE_DESCRIPTION,
     keywords: ["AI", "Machine Learning", "Student Club", "ReLU", "Deep Learning", "Tech Community"],
     authors: [{ name: "ReLU Tech Team" }],
     openGraph: {
-        title: "ReLU - AI&ML Student Club",
+        title: APP_METADATA.SITE_NAME,
         description: "Join the community of AI enthusiasts. Workshops, Hackathons, and more.",
-        url: "https://relu.club",
+        url: APP_METADATA.SITE_URL,
         siteName: "ReLU",
         images: [
             {
@@ -52,8 +54,10 @@ export default function RootLayout({
             <head>
             </head>
             <body className={`${outfit.variable} ${spaceGrotesk.variable} font-sans`}>
-                <AnalyticsListener />
-                {children}
+                <Providers>
+                    <AnalyticsListener />
+                    {children}
+                </Providers>
             </body>
         </html>
     );

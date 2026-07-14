@@ -8,12 +8,14 @@ import FileUpload from "@/components/ui/FileUpload";
 import { useAuth } from "@/lib/auth"; // For Activity Log, ideally
 import { logActivity } from "@/lib/api";
 import Image from "next/image";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AdminResourcesPage() {
     const { profile } = useAuth();
     const [resources, setResources] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
+    const toast = useToast();
 
     // Form State
     const [formData, setFormData] = useState<Omit<Resource, "id">>({
@@ -48,12 +50,12 @@ export default function AdminResourcesPage() {
 
         // Validation
         if (!formData.title || !formData.url) {
-            alert("Please fill in all required fields.");
+            toast.warning("Please fill in all required fields.");
             return;
         }
 
         if (formData.type === "url" && !formData.thumbnailUrl) {
-            alert("Please upload a thumbnail for the link.");
+            toast.warning("Please upload a thumbnail for the link.");
             return;
         }
 

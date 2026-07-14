@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next';
+import { APP_METADATA } from '@/lib/constants';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = 'https://relu.club'; // Replace with actual domain when live
+    const baseUrl = APP_METADATA.SITE_URL;
 
     return [
         {
@@ -36,12 +37,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
         },
         {
             url: `${baseUrl}/resources`,
-            lastModified: new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.8,
-        },
-        {
-            url: `${baseUrl}/announcements`,
             lastModified: new Date(),
             changeFrequency: 'weekly',
             priority: 0.8,

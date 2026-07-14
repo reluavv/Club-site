@@ -5,12 +5,14 @@ import { Bell, Check, X, Loader2, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { subscribeToMyInvitations, respondToInvitation } from "@/lib/api";
 import { TeamInvitation } from "@/types";
+import { useToast } from "@/components/ui/Toast";
 
 export default function NotificationBell() {
     const { user, profile } = useAuth();
     const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
     const [open, setOpen] = useState(false);
     const [responding, setResponding] = useState<string | null>(null);
+    const toast = useToast();
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Only show for public users (not admins)
@@ -42,7 +44,7 @@ export default function NotificationBell() {
             // Real-time subscription will auto-remove it from the list
         } catch (e: any) {
             console.error(e);
-            alert(e.message || "Failed to respond.");
+            toast.error(e.message || "Failed to respond.");
         } finally {
             setResponding(null);
         }

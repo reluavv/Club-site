@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { uploadImage } from "@/lib/api";
 import { FileText, Image as ImageIcon, UploadCloud } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 interface FileUploadProps {
     path: string;
@@ -18,6 +19,7 @@ export default function FileUpload({ path, onUpload, currentUrl, accept, label, 
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [preview, setPreview] = useState(currentUrl || "");
+    const toast = useToast();
 
     const handleFile = async (file: File) => {
         if (!file) return;
@@ -29,7 +31,7 @@ export default function FileUpload({ path, onUpload, currentUrl, accept, label, 
             onUpload(url);
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Failed to upload file");
+            toast.error("Failed to upload file");
         } finally {
             setUploading(false);
         }

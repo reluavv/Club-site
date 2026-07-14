@@ -10,6 +10,7 @@ import {
     searchStudents, sendInvitation, subscribeToTeamInvitations,
     getAvailableTeams, requestToJoinTeam, deleteTeam, removeTeamMember
 } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 interface TeamRegistrationModalProps {
     event: Event;
@@ -38,6 +39,7 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
     const [teamCreated, setTeamCreated] = useState(!!existingRegistration);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const toast = useToast();
 
     // Search/Invite State (for Create flow)
     const [searchTerm, setSearchTerm] = useState("");
@@ -72,7 +74,7 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
             await removeTeamMember(event.id, userProfile.uid, targetUserId);
         } catch (e: any) {
             console.error(e);
-            alert(e.message || "Failed to remove member.");
+            toast.error(e.message || "Failed to remove member.");
         }
     };
 

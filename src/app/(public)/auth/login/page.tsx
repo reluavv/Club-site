@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/api";
 import Link from "next/link";
-import { Mail, Lock, ArrowRight, AlertTriangle } from "lucide-react";
+import { Mail, Lock, ArrowRight, AlertTriangle, KeyRound, CheckCircle } from "lucide-react";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -14,6 +14,10 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const [resetEmail, setResetEmail] = useState("");
+    const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+    const [resetError, setResetError] = useState("");
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,6 +61,27 @@ export default function LoginPage() {
         }
     };
 
+    const handlePasswordReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setResetStatus("sending");
+        setResetError("");
+
+        try {
+            await sendPasswordResetEmail(auth, resetEmail);
+            setResetStatus("sent");
+        } catch (err: any) {
+            console.error("Password reset error:", err);
+            if (err.code === "auth/user-not-found") {
+                setResetError("No account found with this email.");
+            } else if (err.code === "auth/invalid-email") {
+                setResetError("Please enter a valid email address.");
+            } else {
+                setResetError("Failed to send reset email. Please try again.");
+            }
+            setResetStatus("error");
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center pt-24 pb-12 px-4">
             <div className="w-full max-w-md bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
@@ -77,14 +102,28 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
-                                placeholder="name@example.com"
+                                placeholder="u4.....@av.students.amrita.edu"
                                 required
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowResetModal(true);
+                                    setResetEmail(email);
+                                    setResetStatus("idle");
+                                    setResetError("");
+                                }}
+                                className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                            >
+                                Forgot Password?
+                            </button>
+                        </div>
                         <div className="relative group">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-500 transition-colors" size={18} />
                             <input
@@ -123,6 +162,75 @@ export default function LoginPage() {
                     </p>
                 </div>
             </div>
+
+            {/* Password Reset Modal */}
+            {showResetModal && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                    <div className="w-full max-w-sm bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 relative">
+                        <button
+                            onClick={() => setShowResetModal(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                        >
+                            ✕
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                <KeyRound className="text-blue-400" size={20} />
+                            </div>
+                            <h2 className="text-lg font-bold">Reset Password</h2>
+                        </div>
+
+                        {resetStatus === "sent" ? (
+                            <div className="text-center py-4">
+                                <CheckCircle className="text-green-400 mx-auto mb-3" size={40} />
+                                <p className="text-green-400 font-bold mb-2">Email Sent!</p>
+                                <p className="text-gray-400 text-sm">
+                                    Check your inbox at <span className="text-white font-mono text-xs">{resetEmail}</span> for a password reset link.
+                                </p>
+                                <button
+                                    onClick={() => setShowResetModal(false)}
+                                    className="mt-4 px-6 py-2 rounded-lg bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handlePasswordReset}>
+                                <p className="text-gray-400 text-sm mb-4">
+                                    Enter your email address and we&apos;ll send you a link to reset your password.
+                                </p>
+                                <div className="relative group mb-3">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                    <input
+                                        type="email"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all font-mono text-sm"
+                                        placeholder="your@email.com"
+                                        required
+                                    />
+                                </div>
+
+                                {resetError && (
+                                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-3 mb-3">
+                                        <AlertTriangle className="text-red-500 shrink-0" size={16} />
+                                        <p className="text-red-400 text-xs font-bold">{resetError}</p>
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={resetStatus === "sending"}
+                                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all disabled:opacity-50"
+                                >
+                                    {resetStatus === "sending" ? "Sending..." : "Send Reset Link"}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

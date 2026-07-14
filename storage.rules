@@ -8,18 +8,45 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    // Rules
-    match /{allPaths=**} {
-      // Allow public read
+    // --- Path-Specific Rules ---
+
+    // Event posters and assets — any authenticated user can upload (admins manage events)
+    // In production, consider adding Custom Claims for admin-only writes
+    match /events/{allPaths=**} {
       allow read: if true;
-      
-      // Allow write if Authenticated
-      // Relaxing content-type checks to allow Images, Videos, and PDFs (for resources)
-      // Enforcing 50MB limit instead of 5MB to support videos
       allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
-      
-      // Allow delete if Authenticated
       allow delete: if isAuthenticated();
+    }
+
+    // Gallery images and videos — authenticated users can upload
+    match /gallery/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+
+    // Resource files (PDFs, documents)
+    match /resources/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+
+    // User avatars — users can only manage files in their own folder
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuthenticated()
+                   && request.auth.uid == userId
+                   && request.resource.size < 5 * 1024 * 1024;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Default: deny writes to any paths not explicitly matched above
+    // Read is still public for backward compatibility with any existing URLs
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+      allow delete: if false;
     }
   }
 }

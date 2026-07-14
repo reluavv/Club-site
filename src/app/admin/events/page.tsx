@@ -7,12 +7,14 @@ import { getEvents, Event, createEvent, deleteEvent, subscribeToEvents, logActiv
 import { Plus, Edit2, Trash2, Copy, RefreshCw, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/ui/Toast";
 
 export default function EventsAdmin() {
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const { profile } = useAuth();
+    const toast = useToast();
 
     useEffect(() => {
         const unsubscribe = subscribeToEvents((data) => {
@@ -48,7 +50,7 @@ export default function EventsAdmin() {
         const adminName = profile?.displayName || "Admin";
         await logActivity(profile?.uid!, adminName, `Cloned event: ${event.title}`);
 
-        alert("Event cloned successfully!");
+        toast.success("Event cloned successfully!");
     };
 
     return (

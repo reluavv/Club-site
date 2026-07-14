@@ -49,6 +49,10 @@ const nextConfig = {
                     {
                         key: 'Permissions-Policy',
                         value: 'camera=(), microphone=(), geolocation=()'
+                    },
+                    {
+                        key: 'Content-Security-Policy',
+                        value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com https://images.unsplash.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebase.com https://www.google-analytics.com; frame-src https://relu-480416.firebaseapp.com;"
                     }
                 ]
             }

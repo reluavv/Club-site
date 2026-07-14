@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, deleteDoc, doc, query, limit, onSnapshot } from "firebase/firestore";
 import { Trash2, X, RefreshCw, Eye, AlertTriangle, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 interface CollectionManagerProps {
     collectionName: string;
@@ -15,6 +16,7 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
     const [loading, setLoading] = useState(true);
     const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const toast = useToast();
 
     useEffect(() => {
         setLoading(true);
@@ -41,7 +43,7 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
             setDocs(docs.filter(d => d.id !== id));
         } catch (error: any) {
             console.error("Delete failed:", error);
-            alert("Delete failed: " + error.message);
+            toast.error("Delete failed: " + error.message);
         } finally {
             setDeletingId(null);
         }

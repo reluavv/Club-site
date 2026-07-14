@@ -19,8 +19,28 @@ export default function ContactPage() {
         setLoading(true);
         setStatus('idle');
 
+        // Client-side rate limiting: 60-second cooldown between submissions
+        const lastSubmission = localStorage.getItem('relu_contact_last_sent');
+        if (lastSubmission) {
+            const elapsed = Date.now() - parseInt(lastSubmission, 10);
+            if (elapsed < 60000) {
+                const remaining = Math.ceil((60000 - elapsed) / 1000);
+                setStatus('error');
+                setLoading(false);
+                return;
+            }
+        }
+
+        // Field length validation
+        if (formData.name.length > 100 || formData.subject.length > 200 || formData.message.length > 2000) {
+            setStatus('error');
+            setLoading(false);
+            return;
+        }
+
         try {
             await saveMessage(formData);
+            localStorage.setItem('relu_contact_last_sent', Date.now().toString());
             setStatus('success');
             setFormData({ name: "", email: "", subject: "", message: "" });
         } catch (error) {

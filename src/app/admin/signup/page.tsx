@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AdminSignupPage() {
     const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function AdminSignupPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const toast = useToast();
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,7 +42,7 @@ export default function AdminSignupPage() {
                 await signOut();
 
                 // 4. Show Success Message
-                alert("Request Submitted! You will be notified via email once the CTO approves your access.");
+                toast.success("Request Submitted! You will be notified via email once the CTO approves your access.");
                 router.push("/admin/login");
             }
         } catch (err: any) {

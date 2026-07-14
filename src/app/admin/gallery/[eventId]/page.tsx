@@ -9,11 +9,13 @@ import { ArrowLeft, Trash2, Plus, Upload, Play, Image as ImageIcon, Loader2 } fr
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/components/ui/Toast";
 
 export default function EventGalleryManager() {
     const params = useParams();
     const eventId = params.eventId as string;
     const { profile } = useAuth();
+    const toast = useToast();
     // Note: in recent nextjs app dir, params are passed as props to page, but using useParams hook works in client component.
 
     const [event, setEvent] = useState<Event | null>(null);
@@ -73,7 +75,7 @@ export default function EventGalleryManager() {
 
         } catch (error) {
             console.error("Upload failed", error);
-            alert("Upload failed. See console.");
+            toast.error("Upload failed. See console.");
         } finally {
             setUploading(false);
         }
