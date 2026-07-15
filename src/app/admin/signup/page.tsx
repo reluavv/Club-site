@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth";
 import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
+import { isPasswordStrong } from "@/lib/schemas";
+import { PasswordStrengthIndicator } from "@/components/ui/PasswordStrengthIndicator";
 
 export default function AdminSignupPage() {
     const [email, setEmail] = useState("");
@@ -21,8 +23,8 @@ export default function AdminSignupPage() {
             setError("Passwords do not match");
             return;
         }
-        if (password.length < 6) {
-            setError("Password must be at least 6 characters");
+        if (!isPasswordStrong(password)) {
+            setError("Password does not meet the security requirements.");
             return;
         }
 
@@ -85,6 +87,7 @@ export default function AdminSignupPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
+                        <PasswordStrengthIndicator password={password} />
                     </div>
 
                     <div>

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp } from "@/lib/auth"; // We might need to update auth.ts to support public signup without admin profile creation
+import { signUp } from "@/lib/auth";
 import { createUserProfile } from "@/lib/api";
 import Link from "next/link";
 import { Mail, Lock, ArrowRight, AlertTriangle } from "lucide-react";
 import { sendEmailVerification, User } from "firebase/auth";
+import { isPasswordStrong } from "@/lib/schemas";
+import { PasswordStrengthIndicator } from "@/components/ui/PasswordStrengthIndicator";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -21,14 +23,20 @@ export default function SignupPage() {
         setError("");
         setLoading(true);
 
-        if (password !== confirmPassword) {
-            setError("Passwords do not match");
+        if (!email.endsWith("@av.students.amrita.edu")) {
+            setError("Only @av.students.amrita.edu emails are allowed.");
             setLoading(false);
             return;
         }
 
-        if (!email.endsWith("@av.students.amrita.edu")) {
-            setError("Only @av.students.amrita.edu emails are allowed.");
+        if (!isPasswordStrong(password)) {
+            setError("Password does not meet the security requirements.");
+            setLoading(false);
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
             setLoading(false);
             return;
         }
@@ -113,6 +121,7 @@ export default function SignupPage() {
                                 required
                             />
                         </div>
+                        <PasswordStrengthIndicator password={password} />
                     </div>
 
                     {/* Confirm Password Input */}

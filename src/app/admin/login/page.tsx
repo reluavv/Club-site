@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth";
+import { useLoginRateLimit } from "@/hooks/useLoginRateLimit";
+import { ShieldAlert, Timer } from "lucide-react";
 
 export default function AdminLoginPage() {
     const [email, setEmail] = useState("");
@@ -10,18 +12,27 @@ export default function AdminLoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const rateLimit = useLoginRateLimit("admin");
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
 
+        if (rateLimit.isLockedOut) {
+            setError(`Too many failed attempts. Try again in ${rateLimit.formattedTime}.`);
+            setLoading(false);
+            return;
+        }
+
         try {
             await signIn(email, password);
+            rateLimit.resetAttempts();
             router.push("/admin");
         } catch (err: any) {
             console.error(err);
             if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found") {
+                rateLimit.recordFailedAttempt();
                 setError("Invalid email or password.");
             } else if (err.code === "auth/too-many-requests") {
                 setError("Too many attempts. Try again later.");
@@ -64,9 +75,28 @@ export default function AdminLoginPage() {
 
                     {error && <p className="text-red-400 text-sm text-center bg-red-500/10 py-2 rounded">{error}</p>}
 
+                    {rateLimit.isLockedOut && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-3">
+                            <Timer className="text-red-500 shrink-0 mt-0.5" size={18} />
+                            <div>
+                                <p className="text-red-400 text-xs font-bold">Account temporarily locked</p>
+                                <p className="text-red-400/70 text-[11px] mt-1">Too many failed attempts. Try again in {rateLimit.formattedTime}.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {rateLimit.showWarning && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-3">
+                            <ShieldAlert className="text-yellow-500 shrink-0 mt-0.5" size={18} />
+                            <p className="text-yellow-400 text-xs font-bold">
+                                {rateLimit.attemptsRemaining} attempt{rateLimit.attemptsRemaining !== 1 ? "s" : ""} remaining before temporary lockout.
+                            </p>
+                        </div>
+                    )}
+
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || rateLimit.isLockedOut}
                         className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-all disabled:opacity-50 flex items-center justify-center"
                     >
                         {loading ? (

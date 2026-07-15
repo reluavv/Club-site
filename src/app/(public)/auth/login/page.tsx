@@ -6,7 +6,8 @@ import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/aut
 import { auth } from "@/lib/firebase";
 import { getUserProfile } from "@/lib/api";
 import Link from "next/link";
-import { Mail, Lock, ArrowRight, AlertTriangle, KeyRound, CheckCircle } from "lucide-react";
+import { Mail, Lock, ArrowRight, AlertTriangle, KeyRound, CheckCircle, ShieldAlert, Timer } from "lucide-react";
+import { useLoginRateLimit } from "@/hooks/useLoginRateLimit";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -18,11 +19,18 @@ export default function LoginPage() {
     const [resetEmail, setResetEmail] = useState("");
     const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
     const [resetError, setResetError] = useState("");
+    const rateLimit = useLoginRateLimit("public");
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
         setLoading(true);
+
+        if (rateLimit.isLockedOut) {
+            setError(`Too many failed attempts. Try again in ${rateLimit.formattedTime}.`);
+            setLoading(false);
+            return;
+        }
 
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -45,14 +53,17 @@ export default function LoginPage() {
                 return;
             }
 
-            // Check if profile exists and is complete (we might want a flag for onboarding complete)
-            // For now, redirect to profile page which handles its own onboarding check (edit mode vs view mode)
+            // Check if profile exists and is complete
             router.push("/profile");
+            rateLimit.resetAttempts();
 
         } catch (err: any) {
             console.error(err);
             if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+                rateLimit.recordFailedAttempt();
                 setError("Invalid email or password.");
+            } else if (err.code === "auth/too-many-requests") {
+                setError("Too many attempts. Please try again later.");
             } else {
                 setError("Failed to login. Please try again.");
             }
@@ -144,9 +155,28 @@ export default function LoginPage() {
                         </div>
                     )}
 
+                    {rateLimit.isLockedOut && (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-3">
+                            <Timer className="text-red-500 shrink-0 mt-0.5" size={18} />
+                            <div>
+                                <p className="text-red-400 text-xs font-bold">Account temporarily locked</p>
+                                <p className="text-red-400/70 text-[11px] mt-1">Too many failed attempts. Try again in {rateLimit.formattedTime}.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {rateLimit.showWarning && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex items-start gap-3">
+                            <ShieldAlert className="text-yellow-500 shrink-0 mt-0.5" size={18} />
+                            <p className="text-yellow-400 text-xs font-bold">
+                                {rateLimit.attemptsRemaining} attempt{rateLimit.attemptsRemaining !== 1 ? "s" : ""} remaining before temporary lockout.
+                            </p>
+                        </div>
+                    )}
+
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || rateLimit.isLockedOut}
                         className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? "Logging In..." : <>Login <ArrowRight size={18} /></>}

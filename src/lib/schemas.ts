@@ -11,6 +11,28 @@ import { z } from "zod";
  *   }
  */
 
+// --- Password Policy ---
+
+export const PASSWORD_RULES = [
+    { id: "length", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+    { id: "uppercase", label: "One uppercase letter (A-Z)", test: (p: string) => /[A-Z]/.test(p) },
+    { id: "lowercase", label: "One lowercase letter (a-z)", test: (p: string) => /[a-z]/.test(p) },
+    { id: "number", label: "One number (0-9)", test: (p: string) => /[0-9]/.test(p) },
+    { id: "special", label: "One special character (!@#$%^&*)", test: (p: string) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(p) },
+] as const;
+
+export function isPasswordStrong(password: string): boolean {
+    return PASSWORD_RULES.every((rule) => rule.test(password));
+}
+
+export const passwordSchema = z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .refine((p) => /[A-Z]/.test(p), "Must contain at least one uppercase letter")
+    .refine((p) => /[a-z]/.test(p), "Must contain at least one lowercase letter")
+    .refine((p) => /[0-9]/.test(p), "Must contain at least one number")
+    .refine((p) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(p), "Must contain at least one special character");
+
 // --- Auth Schemas ---
 
 export const signupSchema = z
@@ -22,9 +44,7 @@ export const signupSchema = z
                 (e) => e.endsWith("@av.students.amrita.edu"),
                 "Must use your college email (@av.students.amrita.edu)"
             ),
-        password: z
-            .string()
-            .min(6, "Password must be at least 6 characters"),
+        password: passwordSchema,
         confirmPassword: z.string(),
     })
     .refine((data) => data.password === data.confirmPassword, {
