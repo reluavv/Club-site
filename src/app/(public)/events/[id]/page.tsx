@@ -7,6 +7,7 @@ import { Event, GalleryImage } from "@/types";
 import { Calendar, Clock, MapPin, Play, Image as ImageIcon, ArrowLeft, Star } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 
 // Since we cannot use async params in client components easily in current nextjs app router w/o React.use or await params.
 // We'll simplistic approach: Filter from all events or use a direct getEvent(id) in api if it existed.
@@ -90,7 +91,7 @@ export default function EventDetailPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-16">
                     <div className="lg:col-span-2 prose prose-invert max-w-none text-gray-300 leading-loose text-lg">
                         <h2 className="text-white font-bold text-2xl mb-4">About the Event</h2>
-                        <p className="whitespace-pre-wrap">{event.fullDescription || event.description}</p>
+                        <ReactMarkdown className="whitespace-pre-wrap">{event.fullDescription || event.description}</ReactMarkdown>
 
                         {event.details && event.details.length > 0 && (
                             <div className="mt-8">
