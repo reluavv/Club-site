@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { subscribeToEvents, subscribeToAllAdmins, subscribeToActivity, subscribeToTotalUsers, AuditLog } from "@/lib/api";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, CalendarCheck, Users, Globe } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export default function AdminDashboard() {
@@ -44,6 +44,7 @@ export default function AdminDashboard() {
             unsubEvents();
             unsubAdmins();
             unsubUsers();
+            unsubActivity();
         };
     }, []);
 
@@ -56,20 +57,20 @@ export default function AdminDashboard() {
                 <StatCard
                     title="Total Events"
                     value={loading ? "-" : stats.events.toString()}
-                    icon="calendar-check"
+                    icon={<CalendarCheck size={20} />}
                     color="blue"
                 />
                 <StatCard
                     title="Team Members"
                     value={loading ? "-" : stats.team.toString()}
-                    icon="users"
+                    icon={<Users size={20} />}
                     color="purple"
                 />
 
                 <StatCard
                     title="Registered Users"
                     value={loading ? "-" : stats.users.toString()}
-                    icon="globe"
+                    icon={<Globe size={20} />}
                     color="yellow"
                 />
             </div>
@@ -114,7 +115,7 @@ export default function AdminDashboard() {
     );
 }
 
-function StatCard({ title, value, icon, color, alert = false }: { title: string; value: string; icon: string; color: string, alert?: boolean }) {
+function StatCard({ title, value, icon, color, alert = false }: { title: string; value: string; icon: React.ReactNode; color: string, alert?: boolean }) {
     const colors = {
         blue: "bg-blue-500/10 text-blue-500 border-blue-500/20",
         purple: "bg-purple-500/10 text-purple-500 border-purple-500/20",
@@ -130,7 +131,7 @@ function StatCard({ title, value, icon, color, alert = false }: { title: string;
                     <p className="text-3xl font-bold mt-1 text-white">{value}</p>
                 </div>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[color as keyof typeof colors]} bg-opacity-20`}>
-                    <i className={`fas fa-${icon} text-lg`}></i>
+                    {icon}
                 </div>
             </div>
         </div>

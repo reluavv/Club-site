@@ -5,6 +5,7 @@ import { getOnboardingConfig, updateOnboardingConfig, OnboardingConfig } from "@
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, Save, Settings, AlertTriangle } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AdminSettingsPage() {
     const { profile, loading: authLoading } = useAuth();
@@ -14,6 +15,7 @@ export default function AdminSettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [newItem, setNewItem] = useState({ type: "", value: "" });
+    const { toast } = useToast();
 
     useEffect(() => {
         if (!authLoading) {
@@ -52,9 +54,10 @@ export default function AdminSettingsPage() {
         setSaving(true);
         try {
             await updateOnboardingConfig(config);
-            // Success feedback
-        } catch (e) {
+            toast("Configuration saved successfully!", "success");
+        } catch (e: any) {
             console.error(e);
+            toast("Failed to save configuration: " + e.message, "error");
         } finally {
             setSaving(false);
         }
@@ -165,12 +168,11 @@ export default function AdminSettingsPage() {
                         onClick={async () => {
                             if (confirm("Are you sure you want to delete logs older than 30 days? This cannot be undone.")) {
                                 try {
-                                    // Import dynamically to avoid server/client issues if any
                                     const { archiveOldLogs } = await import("@/services/audit");
                                     const count = await archiveOldLogs(30);
-                                    alert(`Archived ${count} old log entries.`);
+                                    toast(`Archived ${count} old log entries.`, "success");
                                 } catch (e: any) {
-                                    alert("Error archiving logs: " + e.message);
+                                    toast("Error archiving logs: " + e.message, "error");
                                 }
                             }
                         }}

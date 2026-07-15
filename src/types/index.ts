@@ -175,3 +175,15 @@ export interface ContactMessage {
     message: string;
     timestamp: any;
 }
+
+export interface Alumni {
+    id: string;
+    name: string;
+    batchYear: string;         // e.g. "2020-2024"
+    roleHeld: string;          // Role they held in ReLU, e.g. "President"
+    currentPosition?: string;  // e.g. "Software Engineer"
+    company?: string;          // e.g. "Google"
+    linkedinUrl?: string;
+    photoURL?: string;
+    createdAt: any;
+}

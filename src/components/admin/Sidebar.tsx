@@ -6,7 +6,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { signOut, useAuth } from "@/lib/auth";
 import {
     LogOut, LayoutDashboard, Calendar, ClipboardList, Users,
-    BookOpen, Image as ImageIcon, Shield, Home, Skull, Terminal, MessageSquare
+    BookOpen, Image as ImageIcon, Shield, Home, Skull, Terminal, MessageSquare,
+    GraduationCap, Settings
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -31,12 +32,14 @@ export default function Sidebar() {
                 <NavLink href="/admin/resources" icon={<BookOpen size={20} />} label="Resources" />
                 <NavLink href="/admin/gallery" icon={<ImageIcon size={20} />} label="Gallery" />
                 <NavLink href="/admin/messages" icon={<MessageSquare size={20} />} label="Messages" />
+                <NavLink href="/admin/alumni" icon={<GraduationCap size={20} />} label="Alumni" />
 
                 {/* Manage Admins - CTO Only */}
                 {profile?.role === "CTO" && (
                     <>
                         <div className="h-px bg-white/10 my-2" />
                         <NavLink href="/admin/admins" icon={<Shield size={20} />} label="Manage Admins" />
+                        <NavLink href="/admin/settings" icon={<Settings size={20} />} label="Settings" />
                     </>
                 )}
 

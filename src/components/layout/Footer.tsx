@@ -39,8 +39,9 @@ export default function Footer() {
                     <ul className="space-y-4">
                         <FooterLink href="/about" label="Team" />
                         <FooterLink href="/events" label="Events" />
-                        <FooterLink href="/gallery" label="Gallery" />
+                        <FooterLink href="/resources" label="Resources" />
                         <FooterLink href="/alumni" label="Alumni" />
+                        <FooterLink href="/contact" label="Contact" />
                     </ul>
                 </div>
 

@@ -9,6 +9,7 @@ import { ref, deleteObject } from "firebase/storage";
 import { Skull, AlertTriangle, ArrowRight, Database, ShieldAlert, Folder, Users, Calendar, Image as ImageIcon, BookOpen, MessageSquare, Settings, ChevronRight, X, Trash2, Eraser, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CollectionManager from "@/components/admin/CollectionManager";
+import { useToast } from "@/components/ui/Toast";
 
 export default function DoomsdayPage() {
     const { user, profile } = useAuth();
@@ -21,6 +22,7 @@ export default function DoomsdayPage() {
     const [showProtocol, setShowProtocol] = useState<"418" | "66" | "99" | "77" | null>(null); // 418=Transfer, 66=Purge, 99=Garbage, 77=Sync
     const [activeCollection, setActiveCollection] = useState<string | null>(null);
     const [purgeProgress, setPurgeProgress] = useState<string[]>([]);
+    const { toast } = useToast();
 
     // Safety Check Component
     if (profile?.role !== "CTO") {
@@ -39,7 +41,7 @@ export default function DoomsdayPage() {
     const handleTransfer = async (e: React.FormEvent) => {
         e.preventDefault();
         if (confirmText !== "TRANSFER ROLE") {
-            alert("Please type TRANSFER ROLE to confirm.");
+            toast("Please type TRANSFER ROLE to confirm.", "error");
             return;
         }
 
@@ -57,7 +59,7 @@ export default function DoomsdayPage() {
             }
         } catch (error: any) {
             console.error(error);
-            alert("Transfer failed: " + error.message);
+            toast("Transfer failed: " + error.message, "error");
         } finally {
             setLoading(false);
         }
@@ -65,7 +67,7 @@ export default function DoomsdayPage() {
 
     const handlePurgeUsers = async () => {
         if (confirmText !== "EXECUTE ORDER 66") {
-            alert("Please type EXECUTE ORDER 66 to confirm.");
+            toast("Please type EXECUTE ORDER 66 to confirm.", "error");
             return;
         }
 
@@ -105,12 +107,12 @@ export default function DoomsdayPage() {
             log("-----------------------------------");
             log(`PURGE COMPLETE. ${current} records annihilated.`);
             log("NOTE: Auth accounts must be deleted manually in Console.");
-            alert(`Operation Complete. ${current} users wiped.`);
+            toast(`Operation Complete. ${current} users wiped.`, "success");
 
         } catch (error: any) {
             console.error(error);
             log("ERROR: " + error.message);
-            alert("Purge failed: " + error.message);
+            toast("Purge failed: " + error.message, "error");
         } finally {
             setLoading(false);
         }
@@ -118,7 +120,7 @@ export default function DoomsdayPage() {
 
     const handleGarbageCollect = async () => {
         if (confirmText !== "EXECUTE ORDER 99") {
-            alert("Please type EXECUTE ORDER 99 to confirm.");
+            toast("Please type EXECUTE ORDER 99 to confirm.", "error");
             return;
         }
 
@@ -161,7 +163,7 @@ export default function DoomsdayPage() {
 
     const handleSyncPending = async () => {
         if (confirmText !== "EXECUTE PROTOCOL 77") {
-            alert("Please type EXECUTE PROTOCOL 77 to confirm.");
+            toast("Please type EXECUTE PROTOCOL 77 to confirm.", "error");
             return;
         }
 
@@ -201,12 +203,12 @@ export default function DoomsdayPage() {
 
             log("-----------------------------------");
             log(`SYNC COMPLETE. ${fixed} requests restored.`);
-            alert(`Operation Complete. ${fixed} requests restored.`);
+            toast(`Operation Complete. ${fixed} requests restored.`, "success");
 
         } catch (error: any) {
             console.error(error);
             log("ERROR: " + error.message);
-            alert("Sync failed: " + error.message);
+            toast("Sync failed: " + error.message, "error");
         } finally {
             setLoading(false);
         }

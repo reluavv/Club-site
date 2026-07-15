@@ -13,23 +13,22 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Check if the user has a specific role in their Custom Claims OR in their user document
-    // Note: Ideally, for performance and security, roles should be set as Custom Claims.
-    // However, since this app reads roles from the 'users' collection, we will check that document.
-    // WARNING: This costs 1 extra read per operation unless you use Custom Claims.
+    // Check if the user has a specific role in their admin profile document
+    // Admin profiles are stored in the 'admins' collection, not 'users'
     function hasRole(roleList) {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isAuthenticated() && (userDoc.data.role in roleList);
+      let adminDoc = get(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isAuthenticated() && (adminDoc.data.role in roleList);
     }
     
     // Exact role match
     function isRole(role) {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isAuthenticated() && userDoc.data.role == role;
+      let adminDoc = get(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isAuthenticated() && adminDoc.data.role == role;
     }
 
     function isAdmin() {
-      return hasRole(['admin', 'super_admin', 'President', 'VP_AIML', 'VP_DSA', 'CTO', 'AdminHead']); 
+      return hasRole(['admin', 'super_admin', 'President', 'VP_AIML', 'VP_DSA', 'CTO', 'AdminHead',
+                       'PRHead', 'Treasurer', 'Mentor', 'Faculty', 'Activator']); 
     }
     
     function isSuperAdmin() {
@@ -57,6 +56,21 @@ service cloud.firestore {
     match /pending_registrations/{userId} {
        allow create: if isAuthenticated() && isOwner(userId);
        allow read, delete: if isAdmin(); // Admin managing requests
+    }
+
+    // Admin Profiles Collection
+    // - Authenticated users can read their own doc (needed for login/init check)
+    // - Authenticated users can create their own profile (first-time setup with "pending" role)
+    // - Admins can read all admin profiles
+    // - Admins can update roles, CTO can delete
+    // - Count queries (isSystemInitialized) need list access for authenticated users
+    match /admins/{userId} {
+      allow get: if isAuthenticated() && isOwner(userId);
+      allow list: if isAuthenticated(); // Needed for getCountFromServer and getAllAdmins
+      allow create: if isAuthenticated() && isOwner(userId)
+        && request.resource.data.role == "pending"; // Can only create with pending role
+      allow update: if isAdmin(); // Admins can update roles
+      allow delete: if isCTO(); // Only CTO can remove admin profiles
     }
 
     // Public Content: Events, Gallery, Projects, Resources, Team
@@ -92,6 +106,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Alumni Collection
+    // - Public read (displayed on /alumni page)
+    // - Admin write (managed via admin portal)
+    match /alumni/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Messages (Contact Form)
     // - Public Create (anyone can send a message, but must have valid fields)
     // - Admin Read/Delete
@@ -122,6 +144,38 @@ service cloud.firestore {
       allow create: if isAuthenticated(); // Authenticated users (mostly admins) log their actions
       allow update: if false;
       allow delete: if isCTO(); // Only CTO can wipe audit logs (Nuclear option) 
+    }
+
+    // Event Registrations
+    // - Authenticated users can create their own registration
+    // - Users can read their own registrations
+    // - Admins can read/update/delete all registrations
+    match /registrations/{document} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated(); // Users need to see team registrations
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // Team Invitations
+    // - Authenticated users can create invitations (team leaders)
+    // - Users can read invitations sent to them or by them
+    // - Users can update invitations (accept/reject)
+    // - Admins can manage all
+    match /invitations/{document} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated(); // Users need to see their invitations
+      allow update: if isAuthenticated(); // Accept/reject
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.fromUserId == request.auth.uid);
+    }
+
+    // Event Feedback
+    // - Authenticated users can create feedback
+    // - Admins can read all feedback
+    // - No public read, no updates
+    match /feedbacks/{document} {
+      allow create: if isAuthenticated();
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
     
     // "Doomsday" & "Underground" (Conceptual regions based on Folder structure)

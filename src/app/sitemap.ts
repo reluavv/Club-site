@@ -24,28 +24,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 0.9,
         },
         {
-            url: `${baseUrl}/ai-ml`,
-            lastModified: new Date(),
-            changeFrequency: 'monthly',
-            priority: 0.8,
-        },
-        {
-            url: `${baseUrl}/dsa`,
-            lastModified: new Date(),
-            changeFrequency: 'monthly',
-            priority: 0.8,
-        },
-        {
             url: `${baseUrl}/resources`,
             lastModified: new Date(),
             changeFrequency: 'weekly',
             priority: 0.8,
         },
         {
-            url: `${baseUrl}/gallery`,
+            url: `${baseUrl}/alumni`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
-            priority: 0.6,
+            priority: 0.7,
         },
         {
             url: `${baseUrl}/contact`,
