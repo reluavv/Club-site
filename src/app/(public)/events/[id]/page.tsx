@@ -91,7 +91,9 @@ export default function EventDetailPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-16">
                     <div className="lg:col-span-2 prose prose-invert max-w-none text-gray-300 leading-loose text-lg">
                         <h2 className="text-white font-bold text-2xl mb-4">About the Event</h2>
-                        <ReactMarkdown className="whitespace-pre-wrap">{event.fullDescription || event.description}</ReactMarkdown>
+                        <div className="whitespace-pre-wrap">
+                            <ReactMarkdown>{event.fullDescription || event.description}</ReactMarkdown>
+                        </div>
 
                         {event.details && event.details.length > 0 && (
                             <div className="mt-8">
