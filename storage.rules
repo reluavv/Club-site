@@ -17,6 +17,11 @@ service firebase.storage {
       allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
       allow delete: if isAuthenticated();
     }
+    match /event-images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
 
     // Gallery images and videos — authenticated users can upload
     match /gallery/{allPaths=**} {
@@ -31,6 +36,11 @@ service firebase.storage {
       allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
       allow delete: if isAuthenticated();
     }
+    match /resource-thumbnails/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.resource.size < 50 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
 
     // User avatars — users can only manage files in their own folder
     match /avatars/{userId}/{fileName} {
@@ -39,6 +49,18 @@ service firebase.storage {
                    && request.auth.uid == userId
                    && request.resource.size < 5 * 1024 * 1024;
       allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    match /profiles/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.resource.size < 5 * 1024 * 1024;
+      allow delete: if isAuthenticated();
+    }
+    
+    match /team_profiles/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && request.resource.size < 5 * 1024 * 1024;
+      allow delete: if isAuthenticated();
     }
 
     // Default: deny writes to any paths not explicitly matched above
