@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, deleteDoc, doc, query, limit, onSnapshot } from "firebase/firestore";
-import { Trash2, X, RefreshCw, Eye, AlertTriangle, Loader2 } from "lucide-react";
+import { collection, deleteDoc, doc, query, limit, onSnapshot, setDoc, addDoc } from "firebase/firestore";
+import { Trash2, X, AlertTriangle, Loader2, Plus, Save, Edit2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
 interface CollectionManagerProps {
@@ -18,14 +18,31 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const toast = useToast();
 
+    // Editor state
+    const [isEditing, setIsEditing] = useState(false);
+    const [editJson, setEditJson] = useState("");
+    
+    const [isCreating, setIsCreating] = useState(false);
+    const [newDocId, setNewDocId] = useState("");
+    const [newDocJson, setNewDocJson] = useState("{\n  \n}");
+    
+    const [saving, setSaving] = useState(false);
+
     useEffect(() => {
         setLoading(true);
-        const q = query(collection(db, collectionName), limit(50));
+        setSelectedDoc(null);
+        setIsEditing(false);
+        setIsCreating(false);
+        
+        const q = query(collection(db, collectionName), limit(100));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
             setDocs(data);
             setLoading(false);
+            
+            // If the currently selected doc was updated, we might want to refresh it if not editing
+            // For simplicity, we just let the user re-select if they want to see changes.
         }, (error) => {
             console.error("Error loading docs:", error);
             setLoading(false);
@@ -40,12 +57,66 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
         setDeletingId(id);
         try {
             await deleteDoc(doc(db, collectionName, id));
-            setDocs(docs.filter(d => d.id !== id));
+            // Snapshot handles local update
+            if (selectedDoc?.id === id) {
+                setSelectedDoc(null);
+                setIsEditing(false);
+            }
         } catch (error: any) {
             console.error("Delete failed:", error);
-            toast.error("Delete failed: " + error.message);
+            toast("Delete failed: " + error.message, "error");
         } finally {
             setDeletingId(null);
+        }
+    };
+
+    const handleEditStart = (docData: any) => {
+        const { id, ...rest } = docData;
+        setEditJson(JSON.stringify(rest, null, 2));
+        setIsEditing(true);
+        setIsCreating(false);
+        setSelectedDoc(docData);
+    };
+
+    const handleCreateStart = () => {
+        setNewDocId("");
+        setNewDocJson("{\n  \n}");
+        setIsCreating(true);
+        setIsEditing(false);
+        setSelectedDoc(null);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!selectedDoc) return;
+        try {
+            setSaving(true);
+            const parsed = JSON.parse(editJson);
+            await setDoc(doc(db, collectionName, selectedDoc.id), parsed);
+            toast("Document updated successfully", "success");
+            setIsEditing(false);
+            setSelectedDoc(null); // Close inspector to refresh
+        } catch (e: any) {
+            toast("Invalid JSON or save failed: " + e.message, "error");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSaveNew = async () => {
+        try {
+            setSaving(true);
+            const parsed = JSON.parse(newDocJson);
+            if (newDocId.trim()) {
+                await setDoc(doc(db, collectionName, newDocId.trim()), parsed);
+            } else {
+                await addDoc(collection(db, collectionName), parsed);
+            }
+            toast("Document created successfully", "success");
+            setIsCreating(false);
+        } catch (e: any) {
+            toast("Invalid JSON or create failed: " + e.message, "error");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -58,10 +129,15 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
                     <span className="text-gray-500 text-sm">({docs.length} docs visible)</span>
                 </div>
                 <div className="flex items-center gap-2">
-
+                    <button
+                        onClick={handleCreateStart}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
+                    >
+                        <Plus size={16} /> Add Document
+                    </button>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                        className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors ml-2"
                         title="Close"
                     >
                         <X size={20} />
@@ -70,9 +146,9 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-hidden flex">
+            <div className="flex-1 overflow-hidden flex relative">
                 {/* List View */}
-                <div className={`flex-1 overflow-y-auto ${selectedDoc ? 'hidden md:block md:w-1/2 border-r border-white/10' : 'w-full'}`}>
+                <div className={`flex-1 overflow-y-auto ${(selectedDoc || isCreating) ? 'hidden md:block md:w-1/2 border-r border-white/10' : 'w-full'}`}>
                     {loading ? (
                         <div className="flex items-center justify-center h-full text-gray-400">
                             <Loader2 className="animate-spin mr-2" /> Loading data...
@@ -95,14 +171,23 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
                                     <tr
                                         key={doc.id}
                                         className={`hover:bg-blue-500/5 transition-colors cursor-pointer ${selectedDoc?.id === doc.id ? 'bg-blue-500/10' : ''}`}
-                                        onClick={() => setSelectedDoc(doc)}
+                                        onClick={() => {
+                                            setSelectedDoc(doc);
+                                            setIsEditing(false);
+                                            setIsCreating(false);
+                                        }}
                                     >
                                         <td className="p-3 text-blue-300 truncate max-w-[150px]">{doc.id}</td>
                                         <td className="p-3 text-gray-400 truncate max-w-[200px]">
-                                            {/* Try to find a readable field */}
                                             {doc.name || doc.title || doc.email || doc.displayName || JSON.stringify(doc).slice(0, 30) + "..."}
                                         </td>
                                         <td className="p-3 text-right">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleEditStart(doc); }}
+                                                className="text-gray-400 hover:text-blue-400 p-1 transition-colors mr-2"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(doc.id); }}
                                                 className="text-gray-500 hover:text-red-500 p-1 transition-colors"
@@ -118,23 +203,117 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
                     )}
                 </div>
 
-                {/* Inspect View */}
-                {selectedDoc && (
+                {/* Inspect/Edit View */}
+                {(selectedDoc || isCreating) && (
                     <div className="w-full md:w-1/2 bg-black/20 overflow-y-auto p-4 absolute md:static inset-0 z-10 md:z-0 flex flex-col">
-                        <div className="flex justify-between items-center mb-4 md:hidden">
-                            <h3 className="font-bold text-gray-300">Document Details</h3>
-                            <button onClick={() => setSelectedDoc(null)} className="text-gray-400"><X size={20} /></button>
-                        </div>
-                        <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap bg-black/50 p-4 rounded-lg border border-white/5 flex-1 overflow-auto">
-                            {JSON.stringify(selectedDoc, null, 2)}
-                        </pre>
-                        <div className="mt-4 flex justify-end">
-                            <button
-                                onClick={() => handleDelete(selectedDoc.id)}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors font-mono text-sm"
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-bold text-gray-300">
+                                {isCreating ? "Create Document" : isEditing ? "Edit Document" : "View Document"}
+                            </h3>
+                            <button 
+                                onClick={() => {
+                                    setSelectedDoc(null);
+                                    setIsCreating(false);
+                                    setIsEditing(false);
+                                }} 
+                                className="text-gray-400 hover:text-white"
                             >
-                                <Trash2 size={16} /> Delete Document
+                                <X size={20} />
                             </button>
+                        </div>
+                        
+                        {isCreating && (
+                            <div className="mb-4">
+                                <label className="block text-xs font-bold text-gray-400 mb-1">Document ID (Optional, leave blank for auto-ID)</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-black/60 border border-white/10 rounded-lg p-2 font-mono text-sm text-blue-300 focus:border-blue-500 outline-none"
+                                    placeholder="Auto-generated ID"
+                                    value={newDocId}
+                                    onChange={(e) => setNewDocId(e.target.value)}
+                                />
+                            </div>
+                        )}
+
+                        {selectedDoc && !isEditing && !isCreating && (
+                            <div className="mb-4">
+                                <label className="block text-xs font-bold text-gray-400 mb-1">Document ID</label>
+                                <div className="w-full bg-black/40 border border-white/5 rounded-lg p-2 font-mono text-sm text-blue-300">
+                                    {selectedDoc.id}
+                                </div>
+                            </div>
+                        )}
+
+                        <label className="block text-xs font-bold text-gray-400 mb-1">Document Data (JSON)</label>
+                        {isEditing ? (
+                            <textarea
+                                className="text-xs text-green-400 font-mono whitespace-pre-wrap bg-black/60 p-4 rounded-lg border border-blue-500/50 flex-1 overflow-auto outline-none resize-none focus:ring-1 focus:ring-blue-500"
+                                value={editJson}
+                                onChange={(e) => setEditJson(e.target.value)}
+                            />
+                        ) : isCreating ? (
+                            <textarea
+                                className="text-xs text-green-400 font-mono whitespace-pre-wrap bg-black/60 p-4 rounded-lg border border-blue-500/50 flex-1 overflow-auto outline-none resize-none focus:ring-1 focus:ring-blue-500"
+                                value={newDocJson}
+                                onChange={(e) => setNewDocJson(e.target.value)}
+                            />
+                        ) : (
+                            <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap bg-black/50 p-4 rounded-lg border border-white/5 flex-1 overflow-auto">
+                                {JSON.stringify((({ id, ...rest }) => rest)(selectedDoc), null, 2)}
+                            </pre>
+                        )}
+
+                        <div className="mt-4 flex justify-end gap-2">
+                            {isEditing ? (
+                                <>
+                                    <button
+                                        onClick={() => setIsEditing(false)}
+                                        className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveEdit}
+                                        disabled={saving}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-bold text-sm disabled:opacity-50"
+                                    >
+                                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                        Save Changes
+                                    </button>
+                                </>
+                            ) : isCreating ? (
+                                <>
+                                    <button
+                                        onClick={() => setIsCreating(false)}
+                                        className="px-4 py-2 text-gray-400 hover:text-white transition-colors text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveNew}
+                                        disabled={saving}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors font-bold text-sm disabled:opacity-50"
+                                    >
+                                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                        Create Document
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => handleDelete(selectedDoc.id)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors text-sm"
+                                    >
+                                        <Trash2 size={16} /> Delete
+                                    </button>
+                                    <button
+                                        onClick={() => handleEditStart(selectedDoc)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/50 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg transition-colors text-sm"
+                                    >
+                                        <Edit2 size={16} /> Edit
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}

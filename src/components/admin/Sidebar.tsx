@@ -39,7 +39,6 @@ export default function Sidebar() {
                     <>
                         <div className="h-px bg-white/10 my-2" />
                         <NavLink href="/admin/admins" icon={<Shield size={20} />} label="Manage Admins" />
-                        <NavLink href="/admin/settings" icon={<Settings size={20} />} label="Settings" />
                     </>
                 )}
 

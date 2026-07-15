@@ -9,6 +9,7 @@ import { ref, deleteObject } from "firebase/storage";
 import { Skull, AlertTriangle, ArrowRight, Database, ShieldAlert, Folder, Users, Calendar, Image as ImageIcon, BookOpen, MessageSquare, Settings, ChevronRight, X, Trash2, Eraser, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CollectionManager from "@/components/admin/CollectionManager";
+import SettingsPanel from "@/components/admin/SettingsPanel";
 import { useToast } from "@/components/ui/Toast";
 
 export default function DoomsdayPage() {
@@ -288,7 +289,9 @@ export default function DoomsdayPage() {
 
                 {/* Active View */}
                 <div className="lg:col-span-3">
-                    {activeCollection ? (
+                    {activeCollection === 'settings' ? (
+                        <SettingsPanel onClose={() => setActiveCollection(null)} />
+                    ) : activeCollection ? (
                         <CollectionManager
                             collectionName={activeCollection}
                             onClose={() => setActiveCollection(null)}
