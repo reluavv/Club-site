@@ -16,7 +16,7 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
     const [loading, setLoading] = useState(true);
     const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const toast = useToast();
+    const { toast } = useToast();
 
     // Editor state
     const [isEditing, setIsEditing] = useState(false);
