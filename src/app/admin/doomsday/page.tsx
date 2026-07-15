@@ -236,6 +236,7 @@ export default function DoomsdayPage() {
             title: "System Data",
             items: [
                 { id: 'registrations', name: 'Registrations', icon: Folder, color: 'text-orange-400' },
+                { id: 'invitations', name: 'Invitations', icon: Folder, color: 'text-blue-300' },
                 { id: 'feedbacks', name: 'Feedbacks', icon: MessageSquare, color: 'text-yellow-200' },
                 { id: 'messages', name: 'Messages', icon: MessageSquare, color: 'text-indigo-400' },
                 { id: 'audit_logs', name: 'Audit Logs', icon: Database, color: 'text-red-500' },

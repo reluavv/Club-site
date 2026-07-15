@@ -28,11 +28,16 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
     
     const [saving, setSaving] = useState(false);
 
+    // Multi-select state
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isDeletingMultiple, setIsDeletingMultiple] = useState(false);
+
     useEffect(() => {
         setLoading(true);
         setSelectedDoc(null);
         setIsEditing(false);
         setIsCreating(false);
+        setSelectedIds(new Set());
         
         const q = query(collection(db, collectionName), limit(100));
 
@@ -40,9 +45,6 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
             const data = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
             setDocs(data);
             setLoading(false);
-            
-            // If the currently selected doc was updated, we might want to refresh it if not editing
-            // For simplicity, we just let the user re-select if they want to see changes.
         }, (error) => {
             console.error("Error loading docs:", error);
             setLoading(false);
@@ -62,11 +64,40 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
                 setSelectedDoc(null);
                 setIsEditing(false);
             }
+            if (selectedIds.has(id)) {
+                const next = new Set(selectedIds);
+                next.delete(id);
+                setSelectedIds(next);
+            }
         } catch (error: any) {
             console.error("Delete failed:", error);
             toast("Delete failed: " + error.message, "error");
         } finally {
             setDeletingId(null);
+        }
+    };
+
+    const handleDeleteMultiple = async () => {
+        if (!confirm(`Are you SURE you want to delete ${selectedIds.size} documents from ${collectionName}? This cannot be undone.`)) return;
+        
+        setIsDeletingMultiple(true);
+        let successCount = 0;
+        try {
+            for (const id of Array.from(selectedIds)) {
+                await deleteDoc(doc(db, collectionName, id));
+                successCount++;
+            }
+            toast(`Successfully deleted ${successCount} documents`, "success");
+            setSelectedIds(new Set());
+            if (selectedDoc && selectedIds.has(selectedDoc.id)) {
+                setSelectedDoc(null);
+                setIsEditing(false);
+            }
+        } catch (error: any) {
+            console.error("Bulk delete failed:", error);
+            toast(`Failed after deleting ${successCount} documents: ${error.message}`, "error");
+        } finally {
+            setIsDeletingMultiple(false);
         }
     };
 
@@ -129,6 +160,16 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
                     <span className="text-gray-500 text-sm">({docs.length} docs visible)</span>
                 </div>
                 <div className="flex items-center gap-2">
+                    {selectedIds.size > 0 && (
+                        <button
+                            onClick={handleDeleteMultiple}
+                            disabled={isDeletingMultiple}
+                            className="flex items-center gap-2 bg-red-600/20 text-red-500 border border-red-500/50 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors mr-2"
+                        >
+                            {isDeletingMultiple ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                            Delete Selected ({selectedIds.size})
+                        </button>
+                    )}
                     <button
                         onClick={handleCreateStart}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"
@@ -161,6 +202,17 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-white/5 text-xs uppercase text-gray-400 font-mono sticky top-0">
                                 <tr>
+                                    <th className="p-3 w-10">
+                                        <input 
+                                            type="checkbox" 
+                                            className="w-4 h-4 rounded border-gray-600 bg-black/40 text-blue-500 focus:ring-blue-500"
+                                            checked={docs.length > 0 && selectedIds.size === docs.length}
+                                            onChange={(e) => {
+                                                if (e.target.checked) setSelectedIds(new Set(docs.map(d => d.id)));
+                                                else setSelectedIds(new Set());
+                                            }}
+                                        />
+                                    </th>
                                     <th className="p-3">Document ID</th>
                                     <th className="p-3">Summary</th>
                                     <th className="p-3 text-right">Actions</th>
@@ -177,6 +229,20 @@ export default function CollectionManager({ collectionName, onClose }: Collectio
                                             setIsCreating(false);
                                         }}
                                     >
+                                        <td className="p-3">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 rounded border-gray-600 bg-black/40 text-blue-500 focus:ring-blue-500"
+                                                checked={selectedIds.has(doc.id)}
+                                                onChange={(e) => {
+                                                    const next = new Set(selectedIds);
+                                                    if (e.target.checked) next.add(doc.id);
+                                                    else next.delete(doc.id);
+                                                    setSelectedIds(next);
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </td>
                                         <td className="p-3 text-blue-300 truncate max-w-[150px]">{doc.id}</td>
                                         <td className="p-3 text-gray-400 truncate max-w-[200px]">
                                             {doc.name || doc.title || doc.email || doc.displayName || JSON.stringify(doc).slice(0, 30) + "..."}
