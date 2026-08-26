@@ -3,8 +3,9 @@ import { NextRequest } from 'next/server';
 /**
  * Server-side Firebase Auth Token Verification Utility
  * 
- * Verifies Firebase ID tokens on API routes without requiring the Firebase Admin SDK.
- * Uses Google's public token info endpoint to validate tokens.
+ * Verifies Firebase ID tokens on API routes using the Firebase Admin SDK.
+ * This properly validates the JWT signature, audience, issuer, and expiry
+ * against Google's public keys.
  * 
  * Usage:
  *   const authResult = await verifyAuthToken(request);
@@ -33,32 +34,14 @@ export async function verifyAuthToken(request: Request | NextRequest): Promise<A
             return null;
         }
 
-        // Verify the token using Google's tokeninfo endpoint
-        // This validates the token's signature, expiry, and issuer
-        const response = await fetch(
-            `https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken }),
-            }
-        );
+        // Verify the token using Firebase Admin SDK
+        // This cryptographically validates: JWT signature, aud, iss, exp, iat, sub
+        const { getAdminAuth } = await import('@/lib/firebaseAdmin');
+        const decodedToken = await getAdminAuth().verifyIdToken(idToken);
 
-        if (!response.ok) {
-            console.warn('Token verification failed:', response.status);
-            return null;
-        }
-
-        const data = await response.json();
-
-        if (!data.users || data.users.length === 0) {
-            return null;
-        }
-
-        const user = data.users[0];
         return {
-            uid: user.localId,
-            email: user.email,
+            uid: decodedToken.uid,
+            email: decodedToken.email,
         };
     } catch (error) {
         console.error('Auth token verification error:', error);

@@ -102,14 +102,42 @@ export async function deleteUserData(uid: string) {
     // Note: Registrations and Feedback are PRESERVED as per request.
     // They will remain as historical records (possibly with broken user links, which is acceptable).
 
-    // Commit all deletes
+    // Commit all Firestore deletes
     await batch.commit();
+
+    // 4. Delete Firebase Auth account via server-side API (requires Admin SDK)
+    try {
+        const { auth } = await import("@/lib/firebase");
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+            const token = await currentUser.getIdToken();
+            await fetch(`/api/admin/delete-user?uid=${uid}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+        }
+    } catch (authError) {
+        // Non-fatal: Firestore data is already deleted. Auth cleanup is best-effort.
+        console.warn('Auth account deletion failed (non-fatal):', authError);
+    }
 }
 
 export function subscribeToTotalUsers(callback: (count: number) => void) {
-    const q = query(collection(db, "users"));
-    // Note: onSnapshot downloads document metadata. optimize if scaling needed.
-    return onSnapshot(q, (snapshot) => {
-        callback(snapshot.size);
-    });
+    // Use getCountFromServer to avoid downloading all user documents.
+    // Poll every 30 seconds instead of real-time snapshot for a count display.
+    const fetchCount = async () => {
+        try {
+            const { getCountFromServer } = await import("firebase/firestore");
+            const countSnap = await getCountFromServer(collection(db, "users"));
+            callback(countSnap.data().count);
+        } catch (e) {
+            console.warn("Failed to get user count:", e);
+        }
+    };
+
+    fetchCount(); // Initial fetch
+    const interval = setInterval(fetchCount, 30000); // Poll every 30s
+
+    // Return unsubscribe function (clears the interval)
+    return () => clearInterval(interval);
 }

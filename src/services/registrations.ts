@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDocs, setDoc, query, where, orderBy, Timestamp, getDoc, writeBatch, deleteField } from "firebase/firestore";
+import { collection, doc, getDocs, setDoc, query, where, orderBy, Timestamp, getDoc, writeBatch, deleteField, runTransaction } from "firebase/firestore";
 import { EventRegistration, UserProfile } from "@/types";
 
 // --- Registration API ---
@@ -124,7 +124,15 @@ export async function registerForEvent(
         })
     };
 
-    await setDoc(doc(db, "registrations", regId), registration);
+    // Write atomically: re-check for duplicates inside transaction
+    await runTransaction(db, async (transaction) => {
+        const regRef = doc(db, "registrations", regId);
+        const existingReg = await transaction.get(regRef);
+        if (existingReg.exists()) {
+            throw new Error("You are already registered for this event.");
+        }
+        transaction.set(regRef, registration);
+    });
     return regId;
 }
 
@@ -172,7 +180,6 @@ export async function checkRegistrationStatus(eventId: string, userId: string): 
 }
 
 import { Feedback, Event } from "@/types";
-import { runTransaction } from "firebase/firestore";
 
 export async function submitFeedback(feedback: Feedback) {
     // Prefer explicit registrationId (from Team Member), fallback to individual ID construction
