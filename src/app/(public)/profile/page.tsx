@@ -83,6 +83,9 @@ function ProfileContent() {
     useEffect(() => {
         if (!authLoading) {
             if (!user) {
+                // Clear stale profile data on logout
+                setProfile(null);
+                setFormData({ displayName: "", rollNo: "", class: "", section: "", mobile: "", hosteller: false });
                 router.push("/auth/login");
                 return;
             }
