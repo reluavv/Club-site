@@ -17,6 +17,7 @@ export default function SignupPage() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -145,9 +146,29 @@ export default function SignupPage() {
                         </div>
                     )}
 
+                    {/* Terms & Privacy Agreement */}
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                            type="checkbox"
+                            checked={agreedToTerms}
+                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 text-red-500 focus:ring-red-500/50 focus:ring-offset-0 cursor-pointer accent-red-500"
+                        />
+                        <span className="text-xs text-gray-400 leading-relaxed">
+                            I have read and agree to the{" "}
+                            <Link href="/terms" className="text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors" target="_blank">
+                                Terms &amp; Conditions
+                            </Link>{" "}
+                            and{" "}
+                            <Link href="/privacy" className="text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors" target="_blank">
+                                Privacy Policy
+                            </Link>.
+                        </span>
+                    </label>
+
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || !agreedToTerms}
                         className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-red-500/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? "Creating Account..." : <>Sign Up <ArrowRight size={18} /></>}

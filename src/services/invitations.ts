@@ -1,54 +1,37 @@
 import { db } from "@/lib/firebase";
 import {
     collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
-    query, where, onSnapshot, Timestamp, arrayUnion, orderBy, limit, startAt, endAt
+    query, where, onSnapshot, Timestamp, arrayUnion, orderBy, limit
 } from "firebase/firestore";
 import { TeamInvitation, UserProfile, EventRegistration } from "@/types";
 import { checkRegistrationStatus } from "./registrations";
 
 // --- Search Students ---
-// Searches the 'users' collection by displayName or rollNo using Firestore range queries.
-// Uses prefix matching (>= term, < term + '\uf8ff') instead of downloading the full collection.
+// Searches the 'users' collection by displayName or rollNo (case-insensitive substring match).
+// Fetches up to 500 users and filters client-side. Suitable for a college club user base.
 export async function searchStudents(searchTerm: string): Promise<UserProfile[]> {
     if (!searchTerm || searchTerm.trim().length < 2) return [];
 
     const term = searchTerm.trim();
+    const termLower = term.toLowerCase();
+    const termUpper = term.toUpperCase();
     const MAX_RESULTS = 20;
 
-    // Run two parallel prefix queries: one on displayName, one on rollNo
-    const nameQuery = query(
-        collection(db, "users"),
-        orderBy("displayName"),
-        startAt(term),
-        endAt(term + '\uf8ff'),
-        limit(MAX_RESULTS)
-    );
+    // Fetch users with a cap to limit Firestore reads
+    const q = query(collection(db, "users"), limit(500));
+    const snapshot = await getDocs(q);
 
-    const rollQuery = query(
-        collection(db, "users"),
-        orderBy("rollNo"),
-        startAt(term.toUpperCase()),
-        endAt(term.toUpperCase() + '\uf8ff'),
-        limit(MAX_RESULTS)
-    );
-
-    const [nameSnap, rollSnap] = await Promise.all([
-        getDocs(nameQuery),
-        getDocs(rollQuery),
-    ]);
-
-    // Merge results, deduplicate by uid
-    const seen = new Set<string>();
     const results: UserProfile[] = [];
+    snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const user = { uid: docSnap.id, ...data } as UserProfile;
+        const nameMatch = user.displayName?.toLowerCase().includes(termLower);
+        const rollMatch = user.rollNo?.toUpperCase().includes(termUpper);
 
-    for (const snap of [nameSnap, rollSnap]) {
-        snap.forEach((d) => {
-            if (!seen.has(d.id)) {
-                seen.add(d.id);
-                results.push({ uid: d.id, ...d.data() } as UserProfile);
-            }
-        });
-    }
+        if (nameMatch || rollMatch) {
+            results.push(user);
+        }
+    });
 
     return results.slice(0, MAX_RESULTS);
 }
