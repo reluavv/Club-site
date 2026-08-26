@@ -1,8 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export default function Home() {
+    const { user, loading } = useAuth();
+
     return (
         <div className="flex flex-col items-center justify-start min-h-screen pt-32 md:pt-36 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center relative z-20">
             {/* Hero Image */}
@@ -35,12 +39,23 @@ export default function Home() {
                 >
                     Meet the Team
                 </Link>
-                <Link
-                    href="/auth/signup"
-                    className="px-6 py-3 text-base md:px-8 md:py-4 md:text-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-full font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transform hover:scale-105 transition-all duration-300 border border-white/20 backdrop-blur-sm"
-                >
-                    Join the Family
-                </Link>
+                {!loading && (
+                    user ? (
+                        <Link
+                            href="/profile"
+                            className="px-6 py-3 text-base md:px-8 md:py-4 md:text-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-full font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transform hover:scale-105 transition-all duration-300 border border-white/20 backdrop-blur-sm"
+                        >
+                            Your Profile
+                        </Link>
+                    ) : (
+                        <Link
+                            href="/auth/signup"
+                            className="px-6 py-3 text-base md:px-8 md:py-4 md:text-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-full font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transform hover:scale-105 transition-all duration-300 border border-white/20 backdrop-blur-sm"
+                        >
+                            Join the Family
+                        </Link>
+                    )
+                )}
             </div>
         </div>
     );

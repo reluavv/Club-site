@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getAllAdmins, deleteAdmin, AdminProfile, PendingRegistration, getPendingRegistrations, approveRegistration, rejectRegistration, subscribeToAllAdmins, subscribeToPendingRegistrations, logActivity, updateAdminRole, createAdminDirectly } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { getAuthHeaders } from "@/lib/serverAuth";
+import { getAuthHeaders } from "@/lib/authHeaders";
 import { Check, X, Shield, Trash2, User } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 

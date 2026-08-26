@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
-import { getAuthHeaders } from "@/lib/serverAuth";
+import { getAuthHeaders } from "@/lib/authHeaders";
 
 interface CheckInModalProps {
     eventId: string;
