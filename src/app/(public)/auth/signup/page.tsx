@@ -44,9 +44,7 @@ export default function SignupPage() {
         try {
             // We use the existing signUp, but we need to handle the profile creation differently since it's a public user, not admin
 
-            // Temporary: We'll use the auth directly here or refactor signUp later. 
-            // For now, let's assume we import signUp from auth, but we need to prevent it from creating an AdminProfile.
-            // Actually, the current signUp in auth.ts creates an AdminProfile. We should probably create a separate signUpForPublic function or handle it here.
+            // Use auth directly for public user signup (separate from admin flow)
 
             // NOTE: Since I cannot easily change auth.ts right this second without breaking admin flow, 
             // I will use direct firebase imports here for the public flow to ensure separation.
