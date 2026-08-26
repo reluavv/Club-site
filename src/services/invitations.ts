@@ -150,7 +150,9 @@ export async function respondToInvitation(
     const isRequest = invitation.type === 'request';
     const currentMembers = regData.teamMembers || [];
 
-    if (currentMembers.length + 1 >= maxSize) { // +1 = leader
+    // Total after adding: leader (1) + current members + new member (1)
+    const totalAfterAdding = currentMembers.length + 2; // +1 leader, +1 new member
+    if (totalAfterAdding > maxSize) {
         throw new Error("This team is already full.");
     }
 

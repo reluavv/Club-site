@@ -34,7 +34,7 @@ export async function checkRoleLimit(role: string): Promise<boolean> {
 }
 
 export async function checkTenure(admin: AdminProfile) {
-    if (admin.role === "CTO") return; // Immune
+    if (admin.role === "CTO") return false; // CTO is immune to tenure expiry
 
     const startDate = admin.approvedAt || admin.createdAt;
     if (!startDate) return;

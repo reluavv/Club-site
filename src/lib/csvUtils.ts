@@ -8,8 +8,15 @@ export function convertToCSV(data: any[], filename: string) {
     const csvContent = [
         headers.join(","), // Header row
         ...data.map(row => headers.map(fieldName => {
-            const val = row[fieldName];
-            return typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val; // Escape quotes
+            let val = row[fieldName];
+            if (typeof val === 'string') {
+                // CSV injection protection: prefix values that start with formula-triggering characters
+                if (/^[=+\-@\t\r]/.test(val)) {
+                    val = `'${val}`;
+                }
+                return `"${val.replace(/"/g, '""')}"`;
+            }
+            return val; // Numbers, booleans, etc.
         }).join(","))
     ].join("\n");
 

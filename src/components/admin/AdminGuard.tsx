@@ -98,42 +98,9 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         );
     }
 
-    // Check Tenure (3 Years)
-    // Exclude CTO from expiry
-    if (profile?.role === "admin" && profile?.approvedAt) {
-        const approvalDate = profile.approvedAt.toDate();
-        const now = new Date();
-        const threeYearsInMs = 3 * 365 * 24 * 60 * 60 * 1000;
-        const timeDiff = now.getTime() - approvalDate.getTime();
-
-        if (timeDiff > threeYearsInMs) {
-            return (
-                <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-4">
-                    <div className="bg-white/5 border border-red-500/30 p-8 rounded-xl max-w-md text-center backdrop-blur-sm">
-                        <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <ShieldAlert size={32} />
-                        </div>
-                        <h1 className="text-2xl font-bold mb-4 text-red-500">Access Expired</h1>
-                        <p className="text-gray-400 mb-8">
-                            Your 3-year tenure as a ReLU Administrator has ended.
-                            Thank you for your contributions to the club!
-                            Your access has been automatically revoked.
-                        </p>
-                        <button
-                            onClick={() => signOut().then(() => router.push("/admin/login"))}
-                            className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            <LogOut size={16} /> Sign Out
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-    }
-
     // Check Allowed Roles
-    // We allow all specialized roles (President, CTO, etc.) as long as they are active.
-    // The previous check only allowed 'admin' or 'CTO'.
+    // All specialized roles (President, CTO, etc.) are allowed as long as they are active.
+    // Tenure enforcement is handled by checkTenure() in useAuth() — not duplicated here.
     const allowedRoles = [
         "President", "VP_AIML", "VP_DSA", "CTO", "AdminHead",
         "PRHead", "Treasurer", "Mentor", "Faculty", "Activator",

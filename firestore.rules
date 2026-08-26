@@ -66,7 +66,9 @@ service cloud.firestore {
     // - Count queries (isSystemInitialized) need list access for authenticated users
     match /admins/{userId} {
       allow get: if isAuthenticated() && isOwner(userId);
-      allow list: if isAuthenticated(); // Needed for getCountFromServer and getAllAdmins
+      // TODO (S-04): Restrict list to admins only once getAllAdmins is moved to a server-side API route.
+      // Currently needed for getCountFromServer (system init check) and getAllAdmins (admin panel).
+      allow list: if isAuthenticated();
       allow create: if isAuthenticated() && isOwner(userId)
         && request.resource.data.role == "pending"; // Can only create with pending role
       allow update: if isAdmin(); // Admins can update roles
@@ -159,13 +161,15 @@ service cloud.firestore {
     // Team Invitations
     // - Authenticated users can create invitations (team leaders)
     // - Users can read invitations sent to them or by them
-    // - Users can update invitations (accept/reject)
+    // - Users can update invitations ONLY if they are the target (accept/reject) or the sender (cancel)
     // - Admins can manage all
     match /invitations/{document} {
       allow create: if isAuthenticated();
       allow read: if isAuthenticated(); // Users need to see their invitations
-      allow update: if isAuthenticated(); // Accept/reject
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.fromUserId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isAuthenticated() && resource.data.targetUserId == request.auth.uid)
+        || (isAuthenticated() && resource.data.senderId == request.auth.uid);
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.senderId == request.auth.uid);
     }
 
     // Event Feedback
@@ -178,6 +182,14 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
     
+    // Settings Collection (onboarding config, etc.)
+    // - Authenticated users can read (needed for dropdown options during onboarding)
+    // - Only admins can modify settings
+    match /settings/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // "Doomsday" & "Underground" (Conceptual regions based on Folder structure)
     // Since these are not collections but app routes, the data they access is likely protected above.
     // If there were specific collections:
