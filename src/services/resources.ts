@@ -1,5 +1,7 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDocs, addDoc, deleteDoc } from "firebase/firestore";
+import { storage } from "@/lib/firebase";
+import { collection, doc, getDocs, getDoc, addDoc, deleteDoc } from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
 import { Resource } from "@/types";
 
 // --- Resources API ---
@@ -19,6 +21,34 @@ export async function createResource(resource: Omit<Resource, "id">) {
     return docRef.id;
 }
 
+/**
+ * Deletes a resource document and its associated files from Storage.
+ * Handles missing files gracefully (non-fatal).
+ */
 export async function deleteResource(id: string) {
+    // Fetch the document first to get file URLs
+    const docSnap = await getDoc(doc(db, "resources", id));
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+
+        // Delete associated files from Storage
+        const urlsToDelete: string[] = [];
+        if (data.url) urlsToDelete.push(data.url);
+        if (data.thumbnailUrl) urlsToDelete.push(data.thumbnailUrl);
+
+        for (const url of urlsToDelete) {
+            try {
+                const storageRef = ref(storage, url);
+                await deleteObject(storageRef);
+            } catch (err: any) {
+                // Ignore "object-not-found" — file may already be deleted
+                if (err.code !== 'storage/object-not-found') {
+                    console.warn(`Failed to delete storage file: ${url}`, err);
+                }
+            }
+        }
+    }
+
+    // Delete the Firestore document
     await deleteDoc(doc(db, "resources", id));
 }

@@ -1,6 +1,6 @@
 import { storage, db } from "@/lib/firebase";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-import { addDoc, collection, Timestamp, query, orderBy, limit, getDocs, writeBatch } from "firebase/firestore";
+import { addDoc, collection, Timestamp, query, orderBy, limit, getDocs, writeBatch, getCountFromServer } from "firebase/firestore";
 import { AuditLog } from "@/types"; // We will make sure this alias works or use relative path
 
 // --- Image Upload API ---
@@ -73,18 +73,20 @@ export async function logAuditAction(actorUid: string, actorName: string, action
         });
 
         // Retention Policy: Keep only the latest 30 logs
-        const q = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"));
-        const snapshot = await getDocs(q);
+        // Use count query first to avoid fetching all documents on every write
+        const countSnap = await getCountFromServer(collection(db, "audit_logs"));
+        if (countSnap.data().count > 30) {
+            const q = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"));
+            const snapshot = await getDocs(q);
 
-        if (snapshot.size > 30) {
-            const batch = writeBatch(db);
-            const docsToDelete = snapshot.docs.slice(30);
-
-            docsToDelete.forEach((doc) => {
-                batch.delete(doc.ref);
-            });
-
-            await batch.commit();
+            if (snapshot.size > 30) {
+                const batch = writeBatch(db);
+                const docsToDelete = snapshot.docs.slice(30);
+                docsToDelete.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            }
         }
 
     } catch (e) {

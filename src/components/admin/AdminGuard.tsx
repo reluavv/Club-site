@@ -15,14 +15,20 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
             router.push("/admin/login");
         }
 
-        // Auto-Migrate Legacy Super Admin to CTO
+        // Auto-Migrate Legacy Super Admin to CTO (one-shot, with error handling)
         if ((profile?.role as string) === "super_admin") {
-            // We need to import updateAdminRole dynamically or just rely on API
-            import("@/lib/api").then(api => {
-                api.updateAdminRole(user!.uid, "CTO").then(() => {
-                    window.location.reload();
+            const migrationKey = `relu_migration_${user!.uid}`;
+            if (!sessionStorage.getItem(migrationKey)) {
+                sessionStorage.setItem(migrationKey, "in_progress");
+                import("@/lib/api").then(api => {
+                    api.updateAdminRole(user!.uid, "CTO").then(() => {
+                        window.location.reload();
+                    }).catch((err: Error) => {
+                        console.error("Super admin migration failed:", err);
+                        sessionStorage.removeItem(migrationKey);
+                    });
                 });
-            });
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, loading, pathname, router]);

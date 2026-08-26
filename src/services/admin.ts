@@ -293,7 +293,8 @@ export async function createAdminDirectly(email: string, pass: string, role: str
         throw new Error(`Role limit reached for ${role}. Cannot create.`);
     }
 
-    // 1. Initialize secondary app to avoid logging out current user
+    // 1. Initialize secondary app with unique name to avoid collisions on concurrent calls
+    const appName = `SecondaryApp_${Date.now()}`;
     const secondaryApp = initializeApp({
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
         authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -301,7 +302,7 @@ export async function createAdminDirectly(email: string, pass: string, role: str
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
         messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
         appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    }, "SecondaryApp");
+    }, appName);
 
     const secondaryAuth = getAuth(secondaryApp);
 
