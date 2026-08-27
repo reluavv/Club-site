@@ -69,7 +69,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
     // Initial check when selecting an event
     useEffect(() => {
-        if (selectedEvent && user && selectedEvent.status === "upcoming") {
+        if (selectedEvent && user && (selectedEvent.status === "upcoming" || selectedEvent.status === "ongoing")) {
             checkStatus();
         } else {
             setRegistration(null);
@@ -171,11 +171,9 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         );
 
         // 1. Check Feedback Phase (Prioritized if Active)
-        if (selectedEvent.isFeedbackOpen) {
-            // Allow feedback if registered OR attended
-            const isEligibleForFeedback = isAttended || (registration && ['registered', 'attended'].includes(registration.status));
-
-            if (isEligibleForFeedback && !isFeedbackSubmitted) {
+        if (selectedEvent.isFeedbackOpen || selectedEvent.feedbackStatus === 'active') {
+            // Only ATTENDED students can give feedback
+            if (isAttended && !isFeedbackSubmitted) {
                 return (
                     <button
                         onClick={() => setShowFeedback(true)}
@@ -186,15 +184,12 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                 );
             } else if (isFeedbackSubmitted) {
                 return (
-                    <div className="flex flex-col gap-2 items-center">
-                        <div className="text-green-400 flex items-center gap-2 font-bold"><Check size={20} /> Feedback Submitted</div>
-                        <Link
-                            href={`/events/${selectedEvent.id}`}
-                            className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-                        >
-                            View Details
-                        </Link>
-                    </div>
+                    <Link
+                        href={`/events/${selectedEvent.id}`}
+                        className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                        View Event Gallery & Report <ExternalLink size={18} />
+                    </Link>
                 );
             }
             // If not attended, fall through...
@@ -273,14 +268,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
         // 4. Not Registered - Check Open Status (Prioritized over Past Status)
 
-        // Check if explicitly open (Admin override) OR window is valid
-        const isWindowOpen = isRegistrationWindowOpen(selectedEvent.date);
-        const isOpen = selectedEvent.registrationStatus === 'open';
-
-        if (isOpen) {
-            // Admin forced open -> Ignore date check
-        }
-
         if (selectedEvent.registrationStatus === 'open') {
             return (
                 <div className="flex flex-col gap-2 w-full sm:w-auto">
@@ -320,10 +307,10 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                 </button>
             );
         } else {
-            // Upcoming / Coming Soon
+            // Upcoming
             return (
                 <button disabled className="px-8 py-3 bg-white/5 text-gray-400 border border-white/10 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed">
-                    <Clock size={20} /> Coming Soon
+                    <Clock size={20} /> Upcoming
                 </button>
             );
         }
