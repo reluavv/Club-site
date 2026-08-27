@@ -35,9 +35,10 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
     const [showCheckIn, setShowCheckIn] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
 
-    // Filter logic
+    // Filter logic — treat 'ongoing' as 'upcoming' so live events stay visible
     const filteredEvents = events.filter((event) => {
         if (filter === "all") return true;
+        if (filter === "upcoming") return event.status === "upcoming" || event.status === "ongoing";
         return event.status === filter;
     });
 
@@ -287,8 +288,8 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             );
         }
 
-        // 5. Past Event (Only if NOT open)
-        if (selectedEvent.status !== 'upcoming') {
+        // 5. Past Event — ONLY for 'past' status, NOT 'ongoing'
+        if (selectedEvent.status === 'past') {
             return (
                 <Link
                     href={`/events/${selectedEvent?.id}`}
@@ -372,8 +373,12 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                                         <Calendar size={14} className="text-blue-400" />
                                         {event.date}
                                     </span>
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${event.status === 'upcoming' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'}`}>
-                                        {event.status === 'upcoming' ? 'Upcoming' : 'Past'}
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
+                                        event.status === 'ongoing' ? 'bg-red-500/20 text-red-400 border-red-500/30 animate-pulse' :
+                                        event.status === 'upcoming' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                                        'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                                    }`}>
+                                        {event.status === 'ongoing' ? '🔴 Live' : event.status === 'upcoming' ? 'Upcoming' : 'Past'}
                                     </span>
                                 </div>
                             </div>
