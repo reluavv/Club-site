@@ -69,7 +69,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
     // Initial check when selecting an event
     useEffect(() => {
-        if (selectedEvent && user && selectedEvent.status === "upcoming") {
+        if (selectedEvent && user && (selectedEvent.status === "upcoming" || selectedEvent.status === "ongoing")) {
             checkStatus();
         } else {
             setRegistration(null);
