@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
-import { getAuthHeaders } from "@/lib/authHeaders";
+import { checkinForEvent } from "@/lib/api";
 
 interface CheckInModalProps {
     eventId: string;
@@ -22,33 +22,12 @@ export default function CheckInModal({ eventId, userId, onClose, onSuccess }: Ch
         setError("");
 
         try {
-            // Get auth token for server-side identity verification
-            const authHeaders = await getAuthHeaders();
-            if (!authHeaders) {
-                setError("You must be logged in to check in.");
-                setLoading(false);
-                return;
-            }
-
-            const res = await fetch("/api/checkin", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", ...authHeaders },
-                body: JSON.stringify({ eventId, code }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                setError(data.error || "Check-in failed.");
-                setLoading(false);
-                return;
-            }
-
+            await checkinForEvent(eventId, userId, code);
             onSuccess();
             onClose();
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            setError("Network error. Please try again.");
+            setError(e.message || "Check-in failed. Please try again.");
         } finally {
             setLoading(false);
         }

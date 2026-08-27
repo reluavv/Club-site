@@ -224,6 +224,80 @@ export async function submitFeedback(feedback: Feedback) {
     });
 }
 
+// --- Client-side Check-in (replaces /api/checkin to avoid firebase-admin dependency) ---
+export async function checkinForEvent(eventId: string, userId: string, code: string): Promise<void> {
+    // 1. Fetch event to validate attendance code
+    const eventRef = doc(db, 'events', eventId);
+    const eventSnap = await getDoc(eventRef);
+
+    if (!eventSnap.exists()) {
+        throw new Error('Event not found');
+    }
+
+    const eventData = eventSnap.data();
+
+    // 2. Check if attendance is active
+    if (!eventData.attendanceCode) {
+        throw new Error('Attendance is not active for this event');
+    }
+
+    // 3. Validate the code
+    if (code !== eventData.attendanceCode) {
+        throw new Error('Incorrect code. Please try again.');
+    }
+
+    // 4. Find the user's registration (individual or team member)
+    let regRef;
+    let regData;
+
+    // A. Direct Individual Registration
+    const individualRegRef = doc(db, 'registrations', `${eventId}_${userId}`);
+    const individualSnap = await getDoc(individualRegRef);
+
+    if (individualSnap.exists()) {
+        regRef = individualRegRef;
+        regData = individualSnap.data();
+    } else {
+        // B. Team Membership Check
+        const q = query(
+            collection(db, 'registrations'),
+            where('eventId', '==', eventId),
+            where('participantIds', 'array-contains', userId)
+        );
+        const querySnap = await getDocs(q);
+        if (!querySnap.empty) {
+            regRef = querySnap.docs[0].ref;
+            regData = querySnap.docs[0].data();
+        }
+    }
+
+    if (!regRef || !regData) {
+        throw new Error('You are not registered for this event');
+    }
+
+    // 5. Check if already checked in
+    const hasIndividualStatus = regData.status === 'attended';
+    const hasMapStatus = regData.attendance && regData.attendance[userId];
+
+    if (hasIndividualStatus || hasMapStatus) {
+        throw new Error('You have already checked in');
+    }
+
+    // 6. Mark as attended
+    if (regData.teamName) {
+        // Team: Use attendance map
+        await setDoc(regRef, {
+            attendance: { [userId]: true }
+        }, { merge: true });
+    } else {
+        // Individual: Set both status and map
+        await setDoc(regRef, {
+            status: 'attended',
+            attendance: { [userId]: true }
+        }, { merge: true });
+    }
+}
+
 export async function deleteTeam(eventId: string, leaderId: string) {
     const regId = `${eventId}_${leaderId}`;
 
