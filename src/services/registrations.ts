@@ -187,34 +187,17 @@ export async function submitFeedback(feedback: Feedback) {
     const eventRef = doc(db, "events", feedback.eventId);
     const regRef = doc(db, "registrations", regId);
 
-    // Use transaction to ensure data integrity
+    // Step 1: Write feedback doc + mark registration (both allowed by Firestore rules)
     await runTransaction(db, async (transaction) => {
-        // 1. Get Event to calculate new rating
+        // Verify event exists
         const eventDoc = await transaction.get(eventRef);
-        if (!eventDoc.exists()) throw "Event does not exist!";
-        const eventData = eventDoc.data() as Event;
+        if (!eventDoc.exists()) throw new Error("Event does not exist!");
 
-        const currentRating = eventData.avgRating || 0;
-        const count = eventData.feedbackCount || 0;
-
-        // New Average = ((Current * Count) + New) / (Count + 1)
-        // Note: feedback.overallRating is 5-star
-        const newCount = count + 1;
-        const newAvg = ((currentRating * count) + feedback.overallRating) / newCount;
-
-        // 2. Write Feedback Doc
+        // Write Feedback Doc
         const feedbackRef = doc(collection(db, "feedbacks")); // Auto ID
         transaction.set(feedbackRef, feedback);
 
-        // 3. Update Event Stats
-        transaction.update(eventRef, {
-            avgRating: newAvg,
-            feedbackCount: newCount
-        });
-
-        // 4. Mark Registration as Feedback Submitted
-        // Use set with merge to create feedbackMap if it doesn't exist
-        // We mark global feedbackSubmitted as true (legacy support) AND track individual user
+        // Mark Registration as Feedback Submitted
         transaction.set(regRef, {
             feedbackSubmitted: true,
             feedbackMap: {
@@ -222,6 +205,104 @@ export async function submitFeedback(feedback: Feedback) {
             }
         }, { merge: true });
     });
+
+    // Step 2: Try to update event stats (may fail if user is not admin — that's OK)
+    // Stats can be recalculated from feedbacks collection by admin
+    try {
+        await runTransaction(db, async (transaction) => {
+            const eventDoc = await transaction.get(eventRef);
+            if (!eventDoc.exists()) return;
+            const eventData = eventDoc.data() as Event;
+
+            const currentRating = eventData.avgRating || 0;
+            const count = eventData.feedbackCount || 0;
+            const newCount = count + 1;
+            const newAvg = ((currentRating * count) + feedback.overallRating) / newCount;
+
+            transaction.update(eventRef, {
+                avgRating: newAvg,
+                feedbackCount: newCount
+            });
+        });
+    } catch {
+        // Expected: students lack write access to events collection.
+        // Feedback is still saved. Stats update is best-effort.
+        console.warn("Event stats update skipped (insufficient permissions). Feedback was saved.");
+    }
+}
+
+// --- Client-side Check-in (replaces /api/checkin to avoid firebase-admin dependency) ---
+export async function checkinForEvent(eventId: string, userId: string, code: string): Promise<void> {
+    // 1. Fetch event to validate attendance code
+    const eventRef = doc(db, 'events', eventId);
+    const eventSnap = await getDoc(eventRef);
+
+    if (!eventSnap.exists()) {
+        throw new Error('Event not found');
+    }
+
+    const eventData = eventSnap.data();
+
+    // 2. Check if attendance is active
+    if (!eventData.attendanceCode) {
+        throw new Error('Attendance is not active for this event');
+    }
+
+    // 3. Validate the code
+    if (code !== eventData.attendanceCode) {
+        throw new Error('Incorrect code. Please try again.');
+    }
+
+    // 4. Find the user's registration (individual or team member)
+    let regRef;
+    let regData;
+
+    // A. Direct Individual Registration
+    const individualRegRef = doc(db, 'registrations', `${eventId}_${userId}`);
+    const individualSnap = await getDoc(individualRegRef);
+
+    if (individualSnap.exists()) {
+        regRef = individualRegRef;
+        regData = individualSnap.data();
+    } else {
+        // B. Team Membership Check
+        const q = query(
+            collection(db, 'registrations'),
+            where('eventId', '==', eventId),
+            where('participantIds', 'array-contains', userId)
+        );
+        const querySnap = await getDocs(q);
+        if (!querySnap.empty) {
+            regRef = querySnap.docs[0].ref;
+            regData = querySnap.docs[0].data();
+        }
+    }
+
+    if (!regRef || !regData) {
+        throw new Error('You are not registered for this event');
+    }
+
+    // 5. Check if already checked in
+    const hasIndividualStatus = regData.status === 'attended';
+    const hasMapStatus = regData.attendance && regData.attendance[userId];
+
+    if (hasIndividualStatus || hasMapStatus) {
+        throw new Error('You have already checked in');
+    }
+
+    // 6. Mark as attended
+    if (regData.teamName) {
+        // Team: Use attendance map
+        await setDoc(regRef, {
+            attendance: { [userId]: true }
+        }, { merge: true });
+    } else {
+        // Individual: Set both status and map
+        await setDoc(regRef, {
+            status: 'attended',
+            attendance: { [userId]: true }
+        }, { merge: true });
+    }
 }
 
 export async function deleteTeam(eventId: string, leaderId: string) {
