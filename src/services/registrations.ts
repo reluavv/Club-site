@@ -187,34 +187,17 @@ export async function submitFeedback(feedback: Feedback) {
     const eventRef = doc(db, "events", feedback.eventId);
     const regRef = doc(db, "registrations", regId);
 
-    // Use transaction to ensure data integrity
+    // Step 1: Write feedback doc + mark registration (both allowed by Firestore rules)
     await runTransaction(db, async (transaction) => {
-        // 1. Get Event to calculate new rating
+        // Verify event exists
         const eventDoc = await transaction.get(eventRef);
-        if (!eventDoc.exists()) throw "Event does not exist!";
-        const eventData = eventDoc.data() as Event;
+        if (!eventDoc.exists()) throw new Error("Event does not exist!");
 
-        const currentRating = eventData.avgRating || 0;
-        const count = eventData.feedbackCount || 0;
-
-        // New Average = ((Current * Count) + New) / (Count + 1)
-        // Note: feedback.overallRating is 5-star
-        const newCount = count + 1;
-        const newAvg = ((currentRating * count) + feedback.overallRating) / newCount;
-
-        // 2. Write Feedback Doc
+        // Write Feedback Doc
         const feedbackRef = doc(collection(db, "feedbacks")); // Auto ID
         transaction.set(feedbackRef, feedback);
 
-        // 3. Update Event Stats
-        transaction.update(eventRef, {
-            avgRating: newAvg,
-            feedbackCount: newCount
-        });
-
-        // 4. Mark Registration as Feedback Submitted
-        // Use set with merge to create feedbackMap if it doesn't exist
-        // We mark global feedbackSubmitted as true (legacy support) AND track individual user
+        // Mark Registration as Feedback Submitted
         transaction.set(regRef, {
             feedbackSubmitted: true,
             feedbackMap: {
@@ -222,6 +205,30 @@ export async function submitFeedback(feedback: Feedback) {
             }
         }, { merge: true });
     });
+
+    // Step 2: Try to update event stats (may fail if user is not admin — that's OK)
+    // Stats can be recalculated from feedbacks collection by admin
+    try {
+        await runTransaction(db, async (transaction) => {
+            const eventDoc = await transaction.get(eventRef);
+            if (!eventDoc.exists()) return;
+            const eventData = eventDoc.data() as Event;
+
+            const currentRating = eventData.avgRating || 0;
+            const count = eventData.feedbackCount || 0;
+            const newCount = count + 1;
+            const newAvg = ((currentRating * count) + feedback.overallRating) / newCount;
+
+            transaction.update(eventRef, {
+                avgRating: newAvg,
+                feedbackCount: newCount
+            });
+        });
+    } catch {
+        // Expected: students lack write access to events collection.
+        // Feedback is still saved. Stats update is best-effort.
+        console.warn("Event stats update skipped (insufficient permissions). Feedback was saved.");
+    }
 }
 
 // --- Client-side Check-in (replaces /api/checkin to avoid firebase-admin dependency) ---
