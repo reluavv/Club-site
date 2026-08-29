@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { ClipboardList, Users, MessageSquare, Play, StopCircle, CheckCircle, AlertCircle, Trash2, Download } from "lucide-react";
+import { ClipboardList, MessageSquare, Play, StopCircle, CheckCircle, Trash2, Download } from "lucide-react";
+import DataViewerModal from "@/components/admin/DataViewerModal";
 import { useState, useEffect } from "react";
 import { getEvents, updateEvent, logActivity, purgeEventData, getEventRegistrations } from "@/lib/api";
 import { convertToCSV } from "@/lib/csvUtils";
@@ -14,7 +14,7 @@ export default function FormsDashboard() {
     const [loading, setLoading] = useState(true);
     const { profile } = useAuth();
 
-    const [stats, setStats] = useState({ totalAttendees: 0, avgRating: 0, feedbackCount: 0 });
+    const [activeModal, setActiveModal] = useState<'registrations' | 'attendance' | 'feedbacks' | null>(null);
 
     useEffect(() => {
         loadData();
@@ -23,24 +23,7 @@ export default function FormsDashboard() {
     const loadData = async () => {
         const data = await getEvents();
 
-        // Calculate Stats
-        let totalRatingSum = 0;
-        let totalFeedbackCount = 0;
-
-        data.forEach(e => {
-            if (e.avgRating && e.feedbackCount) {
-                totalRatingSum += (e.avgRating * e.feedbackCount);
-                totalFeedbackCount += e.feedbackCount;
-            }
-        });
-
-        const calculatedAvg = totalFeedbackCount > 0 ? (totalRatingSum / totalFeedbackCount).toFixed(1) : "0.0";
-
-        setStats({
-            totalAttendees: 0,
-            avgRating: parseFloat(calculatedAvg),
-            feedbackCount: totalFeedbackCount
-        });
+        // Stats are now computed per-event inside the modal
 
         // Sort: Active/Open events first, then by date
         const sorted = data.sort((a, b) => {
@@ -224,36 +207,35 @@ export default function FormsDashboard() {
         convertToCSV(csvData, `${event.title.replace(/\s+/g, '_')}_Report`);
     };
 
-    const [selectedEventForFeedback, setSelectedEventForFeedback] = useState<Event | null>(null);
-
     return (
         <div className="max-w-6xl mx-auto text-white">
             <h1 className="text-3xl font-bold mb-8">Forms & Data</h1>
 
             {/* Quick Stats / Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <Link href="/admin/forms/registrations" className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02]">
+                <button onClick={() => setActiveModal('registrations')} className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02] text-left">
                     <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 text-blue-400 group-hover:scale-110 transition-transform">
                         <ClipboardList size={24} />
                     </div>
                     <h2 className="text-xl font-bold mb-2">Registrations</h2>
-                    <p className="text-gray-400 text-sm">View full detailed logs.</p>
-                </Link>
-                {/* Stats placeholders */}
-                <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
-                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 text-purple-400">
-                        <Users size={24} />
+                    <p className="text-gray-400 text-sm">View registrations by event.</p>
+                </button>
+
+                <button onClick={() => setActiveModal('attendance')} className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02] text-left">
+                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4 text-green-400 group-hover:scale-110 transition-transform">
+                        <CheckCircle size={24} />
                     </div>
-                    <h2 className="text-xl font-bold mb-2">Total Feedbacks</h2>
-                    <p className="text-gray-400 text-sm">{stats.feedbackCount}</p>
-                </div>
-                <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
-                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4 text-green-400">
+                    <h2 className="text-xl font-bold mb-2">Attendance</h2>
+                    <p className="text-gray-400 text-sm">View attended students by event.</p>
+                </button>
+
+                <button onClick={() => setActiveModal('feedbacks')} className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02] text-left">
+                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 text-purple-400 group-hover:scale-110 transition-transform">
                         <MessageSquare size={24} />
                     </div>
-                    <h2 className="text-xl font-bold mb-2">Avg Rating</h2>
-                    <p className="text-gray-400 text-sm">{stats.avgRating} / 5.0</p>
-                </div>
+                    <h2 className="text-xl font-bold mb-2">Feedbacks</h2>
+                    <p className="text-gray-400 text-sm">View feedback submissions by event.</p>
+                </button>
             </div>
 
             <h2 className="text-2xl font-bold mb-6">Event Lifecycle Manager</h2>
@@ -354,7 +336,7 @@ export default function FormsDashboard() {
                                     </button>
 
                                     <button
-                                        onClick={() => setSelectedEventForFeedback(event)}
+                                        onClick={() => setActiveModal('feedbacks')}
                                         className="p-2 text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
                                         title="View Feedback"
                                     >
@@ -384,15 +366,12 @@ export default function FormsDashboard() {
                 </table>
             </div>
 
-            {selectedEventForFeedback && (
-                <FeedbackListModal
-                    eventId={selectedEventForFeedback.id}
-                    eventTitle={selectedEventForFeedback.title}
-                    onClose={() => setSelectedEventForFeedback(null)}
+            {activeModal && (
+                <DataViewerModal
+                    type={activeModal}
+                    onClose={() => setActiveModal(null)}
                 />
             )}
         </div>
     );
 }
-
-import FeedbackListModal from "@/components/admin/FeedbackListModal";
