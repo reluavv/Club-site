@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { getResources, createResource, deleteResource, Resource } from "@/lib/api";
 import { Trash2, Plus, ExternalLink, FileText, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import FileUpload from "@/components/ui/FileUpload";
-import { useAuth } from "@/lib/auth"; // For Activity Log, ideally
+import { useAuth } from "@/lib/auth";
 import { logActivity } from "@/lib/api";
 import Image from "next/image";
 import { useToast } from "@/components/ui/Toast";
@@ -26,14 +26,6 @@ export default function AdminResourcesPage() {
         url: "",
         thumbnailUrl: ""
     });
-
-    useEffect(() => {
-        loadResources();
-    }, []);
-    // ... (skipping lines for brevity in instruction, actual tool call uses line numbers)
-    // Note: I will just replace the state init and the select options separately or together if close.
-    // They are far apart (lines 22 and 124). I'll do two edits or use multi_replace.
-    // Using multi_replace is better.
 
     useEffect(() => {
         loadResources();

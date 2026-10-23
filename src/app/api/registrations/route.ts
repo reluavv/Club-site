@@ -328,7 +328,7 @@ async function checkin(uid: string, body: Body) {
     const secret = await secretRef.get();
     if (!secret.exists || !secret.data()!.code) throw new ApiError('Attendance is not active for this event');
     if ((secret.data()!.failures?.[uid] || 0) >= MAX_CHECKIN_FAILURES) {
-        throw new ApiError('Too many incorrect attempts. Ask an organiser to mark your attendance.', 429);
+        throw new ApiError('Too many incorrect attempts. Ask an organiser to restart attendance.', 429);
     }
     if (code !== secret.data()!.code) {
         await secretRef.update({ [`failures.${uid}`]: FieldValue.increment(1) });

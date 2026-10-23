@@ -11,7 +11,7 @@ export default function CookieConsent() {
         // Check if consent has already been given
         const consent = localStorage.getItem("relu_cookie_consent");
         if (!consent) {
-            // Small delay for better UX — don't show immediately on page load
+            // Short delay so the banner doesn't flash in during page load
             const timer = setTimeout(() => setVisible(true), 1500);
             return () => clearTimeout(timer);
         }
@@ -40,7 +40,7 @@ export default function CookieConsent() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-300 leading-relaxed">
-                                We use cookies and Firebase services to provide you with a seamless experience, including authentication and analytics.
+                                We use cookies for sign-in and Firebase Analytics.
                                 By continuing to use this site, you agree to our{" "}
                                 <Link
                                     href="/privacy"

@@ -40,7 +40,7 @@ export async function deleteEvent(id: string) {
         const eventData = eventSnap.data() as Event;
 
         // 2. Delete all Gallery items associated with this event
-        // We use deleteFromGallery because it now handles file deletion for each item
+        // deleteFromGallery also removes each item's file from Storage
         const galleryImages = await getEventGallery(id);
         const galleryDeletePromises = galleryImages.map(img => deleteFromGallery(img.id));
         await Promise.all(galleryDeletePromises);

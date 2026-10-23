@@ -23,7 +23,7 @@ export default function Footer() {
                         </h2>
                     </Link>
                     <p className="text-gray-400 text-lg leading-relaxed max-w-md mb-6">
-                        Refining Logic and Unleashing AI. We are a community driven by curiosity, innovation, and the pursuit of excellence in Artificial Intelligence.
+                        Refining Logic and Unleashing AI. The AI/ML and DSA student club at Amrita Vishwa Vidyapeetham, Amaravathi. We run workshops, talks and coding events for students.
                     </p>
                     <div className="flex gap-4">
                         <SocialLink href="https://www.linkedin.com/company/reluavv/" icon={<Linkedin size={20} />} label="LinkedIn" />

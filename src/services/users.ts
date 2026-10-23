@@ -43,8 +43,6 @@ async function getRandomDefaultAvatar(): Promise<string> {
 }
 
 function getDefaultFallbackAvatar(): string {
-    // Fallback if API fails - pointing to a safe default if exists, or just a placeholder
-    // Assuming we have at least these after generation
     return '/avatars/robot/robot_01.jpeg';
 }
 
@@ -99,7 +97,7 @@ export async function deleteUserData(uid: string) {
     const pendingRef = doc(db, "pending_registrations", uid);
     batch.delete(pendingRef);
 
-    // Note: Registrations and Feedback are PRESERVED as per request.
+    // Registrations and feedback are kept as historical records.
     // They will remain as historical records (possibly with broken user links, which is acceptable).
 
     // Commit all Firestore deletes

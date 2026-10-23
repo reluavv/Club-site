@@ -5,7 +5,7 @@ import { AdminProfile } from '@/types';
 
 export const metadata: Metadata = {
     title: 'Team & About | ReLU',
-    description: 'Meet the team behind ReLU - The refining logic and unleashing AI student club.',
+    description: 'The current ReLU team and the founders of the club.',
 };
 
 export const revalidate = 0;

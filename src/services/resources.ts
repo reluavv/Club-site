@@ -41,7 +41,7 @@ export async function deleteResource(id: string) {
                 const storageRef = ref(storage, url);
                 await deleteObject(storageRef);
             } catch (err: any) {
-                // Ignore "object-not-found" — file may already be deleted
+                // Ignore "object-not-found": the file may already be deleted
                 if (err.code !== 'storage/object-not-found') {
                     console.warn(`Failed to delete storage file: ${url}`, err);
                 }

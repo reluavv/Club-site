@@ -6,7 +6,6 @@ import { deleteUserData } from "./users";
 
 // --- Constants ---
 const TENURE_DURATION_MS = 2 * 365 * 24 * 60 * 60 * 1000; // 2 Years
-// const TENURE_DURATION_MS = 2 * 60 * 1000; // 2 Minutes (Debug)
 
 const ROLE_LIMITS: Record<string, number> = {
     "President": 1,
@@ -107,21 +106,13 @@ export async function isSystemInitialized(): Promise<boolean> {
     }
 }
 
-// Updated to prevent exceeding limits
 export async function updateAdminRole(uid: string, role: string, actorUid?: string, actorName?: string) {
     // 1. Check Limit
     if (!(await checkRoleLimit(role))) {
         throw new Error(`Role limit reached for ${role}. Cannot assign.`);
     }
 
-    const updates: any = { role };
-    // If promoting from pending/onboarding
-    if (role !== "pending") {
-        // Keep original approvedAt if exists, else set it
-        // But usually we just update the role string here
-    }
-
-    await updateDoc(doc(db, "admins", uid), updates);
+    await updateDoc(doc(db, "admins", uid), { role });
 
     if (actorUid) {
         await logActivity(actorUid, actorName || "Unknown", "UPDATE_ROLE", { targetUid: uid, newRole: role });

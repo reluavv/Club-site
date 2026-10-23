@@ -106,7 +106,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
     // Check Allowed Roles
     // All specialized roles (President, CTO, etc.) are allowed as long as they are active.
-    // Tenure enforcement is handled by checkTenure() in useAuth() — not duplicated here.
+    // Tenure is enforced by checkTenure() in useAuth().
     const allowedRoles = [
         "President", "VP_AIML", "VP_DSA", "CTO", "AdminHead",
         "PRHead", "Treasurer", "Mentor", "Faculty", "Activator",

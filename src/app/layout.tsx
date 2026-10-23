@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     authors: [{ name: "ReLU Tech Team" }],
     openGraph: {
         title: APP_METADATA.SITE_NAME,
-        description: "Join the community of AI enthusiasts. Workshops, Hackathons, and more.",
+        description: "The AI/ML and DSA student club at Amrita Vishwa Vidyapeetham, Amaravathi. Workshops, hackathons and talks.",
         url: APP_METADATA.SITE_URL,
         siteName: "ReLU",
         images: [

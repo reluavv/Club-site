@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Rocket } from "lucide-react";
 
 export default function NotFound() {
     return (
@@ -14,14 +15,14 @@ export default function NotFound() {
                 </h1>
                 <h2 className="text-3xl font-bold text-white mb-6">Lost in Space?</h2>
                 <p className="text-gray-400 max-w-md mx-auto mb-8 text-lg">
-                    The page you are looking for has drifted into a black hole or never existed in this dimension.
+                    This page doesn&apos;t exist or has been moved.
                 </p>
 
                 <Link
                     href="/"
                     className="inline-flex items-center gap-2 px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white transition-all hover:scale-105"
                 >
-                    <i className="fas fa-rocket"></i>
+                    <Rocket size={18} />
                     <span>Return to Base</span>
                 </Link>
             </div>

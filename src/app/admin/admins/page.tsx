@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
         return date.toLocaleDateString();
     };
 
-    // Strict CTO Check - MOVED AFTER HOOKS
+    // CTO only. Checked after the hooks so they always run in the same order.
     if (profile?.role !== "CTO") {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center text-center">

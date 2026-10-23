@@ -9,10 +9,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
-// Since we cannot use async params in client components easily in current nextjs app router w/o React.use or await params.
-// We'll simplistic approach: Filter from all events or use a direct getEvent(id) in api if it existed.
-// For now, we fetch all events and filter. Ideally we should add getEvent(id)
-
 export default function EventDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -147,7 +143,6 @@ export default function EventDetailPage() {
                                     {/* Handle Video vs Image */}
                                     {media.type === 'video' ? (
                                         <div className="relative aspect-video">
-                                            {/* Ideally real video player or thumbnail */}
                                             <video src={media.src} controls className="w-full h-full object-cover" />
                                             <div className="absolute top-2 right-2 bg-black/50 px-2 py-1 rounded text-xs text-white flex items-center gap-1 pointer-events-none">
                                                 <Play size={10} /> Video

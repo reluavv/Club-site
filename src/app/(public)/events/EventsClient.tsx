@@ -35,7 +35,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
     const [showCheckIn, setShowCheckIn] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
 
-    // Filter logic — treat 'ongoing' as 'upcoming' so live events stay visible
+    // Treat 'ongoing' as 'upcoming' so live events stay visible
     const filteredEvents = events.filter((event) => {
         if (filter === "all") return true;
         if (filter === "upcoming") return event.status === "upcoming" || event.status === "ongoing";
@@ -58,7 +58,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         }
     }, [selectedEvent?.id, user]);
 
-    // Update selectedEvent when events changes (Fix for live feedback toggle)
+    // Keep the open event in sync with live updates (e.g. feedback being opened)
     useEffect(() => {
         if (selectedEvent) {
             const updated = events.find(e => e.id === selectedEvent.id);
@@ -166,8 +166,8 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
         // Check Feedback Submission status (Refined for Teams)
         const isFeedbackSubmitted = user && registration && (
-            (registration.feedbackMap && registration.feedbackMap[user.uid]) || // Explicit individual check (New)
-            (!registration.feedbackMap && registration.feedbackSubmitted) // Legacy fallback (only if map missing)
+            (registration.feedbackMap && registration.feedbackMap[user.uid]) ||
+            (!registration.feedbackMap && registration.feedbackSubmitted) // older registrations without feedbackMap
         );
 
         // 1. Check Feedback Phase (Prioritized if Active)
@@ -192,12 +192,10 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                     </Link>
                 );
             }
-            // If not attended, fall through...
         }
 
         // 2. Check Attendance Phase (Prioritized if Code is Active)
-        // User update: "Start Event" != "Start Attendance".
-        // Even if status is 'ongoing', we wait for the Admin to click "Start Attendance" (which generates the code).
+        // Starting an event does not open attendance; an admin starts it separately from the Forms page.
         const isAttendanceActive = selectedEvent.attendanceStatus === 'active';
 
         if (isAttendanceActive && registration) {
@@ -208,7 +206,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                     </button>
                 );
             } else if (registration.status === 'registered' || registration.status === 'attended') {
-                // Note: 'attended' status users might re-open modal to see code? No, usually disabled above.
                 // But if local logic fails, this catches it.
                 return (
                     <button
@@ -285,7 +282,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             );
         }
 
-        // 5. Past Event — ONLY for 'past' status, NOT 'ongoing'
+        // 5. Past event: only for 'past' status, not 'ongoing'
         if (selectedEvent.status === 'past') {
             return (
                 <Link
@@ -375,7 +372,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                                         event.status === 'upcoming' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                                         'bg-gray-500/20 text-gray-400 border-gray-500/30'
                                     }`}>
-                                        {event.status === 'ongoing' ? '🔴 Live' : event.status === 'upcoming' ? 'Upcoming' : 'Past'}
+                                        {event.status === 'ongoing' ? 'Live' : event.status === 'upcoming' ? 'Upcoming' : 'Past'}
                                     </span>
                                 </div>
                             </div>

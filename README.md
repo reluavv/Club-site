@@ -1,71 +1,63 @@
 # ReLU Club Website
 
-This is the official website for the ReLU AI/ML Club, rebuilt with Next.js and Tailwind CSS.
+Website and admin portal for ReLU (Refining Logic and Unleashing AI), the AI/ML and DSA student club at Amrita Vishwa Vidyapeetham, Amaravathi.
 
-## 🚀 Getting Started
+Students use it to sign up with their college email, register for events (solo or as a team), check in at events and give feedback. Club admins use the `/admin` portal to run events, attendance, the gallery, resources, alumni and the team list.
 
-### Prerequisites
+Built with Next.js 14 (App Router), TypeScript, Tailwind CSS and Firebase (Auth, Firestore, Storage). Deployed on Google Cloud Run.
 
-You need **Node.js 18+** installed.
+## Running locally
 
-### Installation
+Requires Node.js 20.
 
-1.  Refer to `legacy_static` if you need to see the old site.
-2.  Install dependencies:
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-3.  Run the development server:
-    ```bash
-    npm run dev
-    ```
-4.  Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+npm install
+cp .env.example .env.local   # then fill in the values
+npm run dev
+```
 
-## 📁 Project Structure
+The site runs at http://localhost:3000. Ask the CTO for the Firebase config, the service account key and the mail credentials. Never commit `.env.local`.
 
-*   `src/app`: Pages (Home, About, Announcements, Contact).
-*   `src/components`: Reusable UI components.
-    *   `layout`: Navbar.
-    *   `ui`: StarBackground, Timeline, TeamMember.
-*   `src/lib`: Data and utility functions.
-*   `public`: Static images.
+Other scripts:
 
-## ☁️ Deployment on Google Cloud Platform (GCP)
+```bash
+npm run lint
+npm run build
+```
 
-This project is configured for deployment on **Cloud Run**.
+## Project layout
 
-### Step 1: GCP Setup
-1.  Create a GCP Project.
-2.  Enable **Cloud Run API** and **Cloud Build API**.
-3.  Install **Google Cloud SDK** locally if you want to deploy from terminal.
+```
+src/
+  app/
+    (public)/     public site: home, about, events, resources, alumni, contact, profile, auth
+    admin/        admin portal
+    api/          server routes (registrations, send-email, admin/delete-user, avatars)
+  components/     UI, grouped into admin/, layout/, public/ and ui/
+  services/       Firestore and Storage access, one file per area
+  lib/            Firebase setup, auth helpers, the @/lib/api entry point, small utilities
+  types/          shared TypeScript types
+public/           static images and the preset avatars
+firestore.rules   Firestore security rules
+storage.rules     Storage security rules
+```
 
-### Step 2: Build & Deploy using Cloud Build
-The included `cloudbuild.yaml` handles building the Docker image and deploying it.
+Pages import data functions from `@/lib/api`, which re-exports every service and the shared types.
 
-1.  Connect this repository to Cloud Build (via GitHub Trigger) OR submit a build manually:
-    ```bash
-    gcloud builds submit --config cloudbuild.yaml .
-    ```
-    *(Make sure you are authenticated with `gcloud auth login` and `gcloud config set project YOUR_PROJECT_ID`)*
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for roles, the data model and how registrations, attendance and feedback work.
 
-### Step 3: Manual Deployment (Alternative)
-1.  Build the Docker image:
-    ```bash
-    docker build -t gcr.io/[PROJECT-ID]/relu-website .
-    ```
-2.  Push to Google Container Registry:
-    ```bash
-    docker push gcr.io/[PROJECT-ID]/relu-website
-    ```
-3.  Deploy to Cloud Run:
-    ```bash
-    gcloud run deploy relu-website --image gcr.io/[PROJECT-ID]/relu-website --platform managed
-    ```
+## Deployment
 
-## 🛠 Features
-*   **Dynamic Data**: Team members and Events are loaded from `src/lib/data.ts` (can be connected to a DB later).
-*   **Contact Form**: Submits to `/api/contact` (currently logs to console, ready for Email API integration).
-*   **Star Animation**: Ported from legacy JS to a React Component (`StarBackground`).
-*   **Timeline**: Custom Timeline component with scroll interaction.
+The site is deployed to Cloud Run with Cloud Build (`cloudbuild.yaml`). The build passes the `NEXT_PUBLIC_FIREBASE_*` values as Docker build args and sets `EMAIL_USER` and `EMAIL_PASS` on the service. These come from substitution variables on the Cloud Build trigger.
+
+```bash
+gcloud builds submit --config cloudbuild.yaml .
+```
+
+Security rules are deployed separately with the Firebase CLI:
+
+```bash
+firebase deploy --only firestore:rules,storage
+```
+
+When a change touches both the app and the rules, deploy the app first and the rules second.

@@ -448,8 +448,8 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                                     <p className="text-white font-bold text-lg">{teamName}</p>
                                     <p className="text-gray-400 text-xs mt-0.5">
                                         {currentMemberCount >= minSize
-                                            ? "✅ Team meets minimum size requirement"
-                                            : `⏳ Need ${minSize - currentMemberCount} more member${minSize - currentMemberCount > 1 ? 's' : ''} to complete`
+                                            ? "Team meets the minimum size"
+                                            : `Need ${minSize - currentMemberCount} more member${minSize - currentMemberCount > 1 ? 's' : ''} to complete`
                                         }
                                     </p>
                                 </div>

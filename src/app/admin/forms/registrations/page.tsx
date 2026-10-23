@@ -195,7 +195,7 @@ export default function RegistrationsPage() {
                                             </span>
                                             {reg.feedbackSubmitted && (
                                                 <span className="ml-2 px-2 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded text-xs font-bold">
-                                                    📝 Feedback
+                                                    Feedback
                                                 </span>
                                             )}
                                         </td>

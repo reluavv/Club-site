@@ -54,7 +54,7 @@ export default function OnboardingPage() {
     return (
         <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
             <div className="max-w-2xl w-full bg-white/5 border border-white/10 rounded-2xl p-8">
-                <h1 className="text-3xl font-bold mb-2">Welcome to the Team! 🚀</h1>
+                <h1 className="text-3xl font-bold mb-2">Welcome to the team</h1>
                 <p className="text-gray-400 mb-8">Please complete your profile to access the dashboard.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -153,7 +153,7 @@ export default function OnboardingPage() {
                                 <div className="h-full bg-blue-500 transition-all duration-300 origin-left" style={{ width: `${progress}%` }}></div>
                             </div>
                         )}
-                        <span className="relative z-10">{loading ? `Setting up details... ${Math.round(progress)}%` : "Complete Setup 🚀"}</span>
+                        <span className="relative z-10">{loading ? `Setting up details... ${Math.round(progress)}%` : "Complete Setup"}</span>
                     </button>
                 </form>
             </div>

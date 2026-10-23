@@ -43,13 +43,7 @@ export default function SignupPage() {
         }
 
         try {
-            // We use the existing signUp, but we need to handle the profile creation differently since it's a public user, not admin
-
-            // Use auth directly for public user signup (separate from admin flow)
-
-            // NOTE: Since I cannot easily change auth.ts right this second without breaking admin flow, 
-            // I will use direct firebase imports here for the public flow to ensure separation.
-
+            // Students get a 'users' profile; signUp() in lib/auth is for the admin flow.
             const { createUserWithEmailAndPassword, getAuth } = await import("firebase/auth");
             const { auth } = await import("@/lib/firebase");
 
