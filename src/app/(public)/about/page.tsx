@@ -1,15 +1,28 @@
 import { Metadata } from 'next';
 import AboutClient from './AboutClient';
-import { getAllAdmins } from '@/lib/api';
+import { getAdminFirestore } from '@/lib/firebaseAdmin';
+import { AdminProfile } from '@/types';
 
 export const metadata: Metadata = {
     title: 'Team & About | ReLU',
     description: 'Meet the team behind ReLU - The refining logic and unleashing AI student club.',
 };
 
+export const revalidate = 0;
+
+// Admin profiles are not publicly readable (they hold DOB and roll numbers),
+// so the server picks out the fields the team cards show.
 export default async function AboutPage() {
-    const allAdmins = await getAllAdmins();
-    // Filter for active users only
-    const activeTeam = allAdmins.filter(u => u.status === "active");
-    return <AboutClient team={activeTeam} />;
+    let team: AdminProfile[] = [];
+    try {
+        const snap = await getAdminFirestore().collection('admins').where('status', '==', 'active').get();
+        team = snap.docs
+            .map(d => d.data() as AdminProfile)
+            .filter(u => u.role !== 'pending')
+            .map(({ uid, email, role, status, displayName, photoURL, socials }) =>
+                ({ uid, email, role, status, createdAt: null, displayName, photoURL, socials }));
+    } catch (error) {
+        console.error('Failed to load team:', error);
+    }
+    return <AboutClient team={team} />;
 }

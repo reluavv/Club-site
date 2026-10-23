@@ -3,7 +3,7 @@
 import { ClipboardList, MessageSquare, Play, StopCircle, CheckCircle, Trash2, Download } from "lucide-react";
 import DataViewerModal from "@/components/admin/DataViewerModal";
 import { useState, useEffect } from "react";
-import { getEvents, updateEvent, logActivity, purgeEventData, getEventRegistrations } from "@/lib/api";
+import { getEvents, updateEvent, logActivity, purgeEventData, getEventRegistrations, startAttendance, stopAttendance, getAttendanceCode } from "@/lib/api";
 import { convertToCSV } from "@/lib/csvUtils";
 
 import { Event } from "@/types";
@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 export default function FormsDashboard() {
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
+    const [attendanceCodes, setAttendanceCodes] = useState<Record<string, string>>({});
     const { profile } = useAuth();
 
     const [activeModal, setActiveModal] = useState<'registrations' | 'attendance' | 'feedbacks' | null>(null);
@@ -43,6 +44,10 @@ export default function FormsDashboard() {
             return b.date.localeCompare(a.date);
         });
         setEvents(sorted);
+
+        const active = sorted.filter(e => e.attendanceStatus === 'active');
+        const codes = await Promise.all(active.map(e => getAttendanceCode(e.id)));
+        setAttendanceCodes(Object.fromEntries(active.map((e, i) => [e.id, codes[i] || ''])));
         setLoading(false);
     };
 
@@ -117,17 +122,12 @@ export default function FormsDashboard() {
 
             if (!confirm(`${action} attendance for "${event.title}"? New Code: ${code}`)) return;
 
-            await updateEvent(event.id, { attendanceCode: code, attendanceStatus: 'active' });
+            await startAttendance(event.id, code);
             await logActivity(profile?.uid!, profile?.displayName || "Admin", `${action}ed attendance for: ${event.title}`);
-        } else if (currentStatus === 'active') {
-            // Stop
-            if (!confirm(`STOP attendance for "${event.title}"?`)) return;
-            await updateEvent(event.id, { attendanceCode: '', attendanceStatus: 'ended' });
-            await logActivity(profile?.uid!, profile?.displayName || "Admin", `Ended attendance for: ${event.title}`);
         } else {
-            // Fallback (Active but weird state)
             if (!confirm(`STOP attendance for "${event.title}"?`)) return;
-            await updateEvent(event.id, { attendanceCode: '', attendanceStatus: 'ended' });
+            await stopAttendance(event.id);
+            await logActivity(profile?.uid!, profile?.displayName || "Admin", `Ended attendance for: ${event.title}`);
         }
         loadData();
     };
@@ -301,13 +301,13 @@ export default function FormsDashboard() {
                                     <button
                                         onClick={() => handleToggleAttendance(event)}
                                         disabled={!event.registrationStatus || event.registrationStatus === 'upcoming'}
-                                        className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${event.attendanceStatus === 'active' || (event.attendanceCode && !event.attendanceStatus)
+                                        className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${event.attendanceStatus === 'active'
                                             ? 'bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30'
                                             : (event.attendanceStatus === 'ended' ? 'bg-gray-500/10 text-gray-500 border-gray-600 hover:border-white/50 hover:text-white' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30')
                                             }`}
                                     >
                                         {event.attendanceStatus === 'ended' ? 'RESTART' : (
-                                            event.attendanceStatus === 'active' || event.attendanceCode ? <><StopCircle size={14} /> STOP ({event.attendanceCode})</> : <><Play size={14} /> START</>
+                                            event.attendanceStatus === 'active' ? <><StopCircle size={14} /> STOP ({attendanceCodes[event.id]})</> : <><Play size={14} /> START</>
                                         )}
                                     </button>
                                 </td>

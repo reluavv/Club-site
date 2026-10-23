@@ -57,42 +57,34 @@ export default function AdminUsersPage() {
     }, []);
 
 
+    // Returns false when the mail was not sent, so the CTO can notify the person another way.
+    const sendNotification = async (to: string, subject: string, text: string) => {
+        try {
+            const authHeaders = await getAuthHeaders();
+            const res = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...authHeaders },
+                body: JSON.stringify({ to, subject, text })
+            });
+            return res.ok;
+        } catch (err) {
+            console.error("Failed to send email", err);
+            return false;
+        }
+    };
+
     const handleApprove = async (reg: PendingRegistration) => {
-        if (!confirm(`Approve ${reg.email}? This will open your email client to notify them.`)) return;
+        if (!confirm(`Approve ${reg.email}? They will be emailed a login link.`)) return;
         setLoading(true);
         try {
             await approveRegistration(reg.id, profile?.uid, profile?.displayName || "Admin");
-            // Send Email
-            const subject = "ReLU Admin Access Approved";
-            const body = `Congratulations! Your request to join the ReLU Admin Team has been approved.\n\nPlease log in at https://relu.club/admin/login to complete your onboarding.`;
-
-            // Send Email via API (with auth token)
-            try {
-                const authHeaders = await getAuthHeaders();
-                await fetch('/api/send-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({
-                        to: reg.email,
-                        subject,
-                        text: body,
-                        html: body.replace(/\n/g, '<br>')
-                    })
-                });
-            } catch (err) {
-                console.error("Failed to send email", err);
-                toast.warning("User approved, but failed to send email.");
-            }
-
-            const adminName = profile?.displayName || "CTO";
-            // logActivity handled inside approveRegistration now, but we kept it? 
-            // Wait, approveRegistration has logAuditAction inside it. We should probably remove the manual logActivity here to avoid double logging or update it. 
-            // The existing code has MANUAL logActivity after approveRegistration.
-            // services/admin.ts ALREADY logs it.
-            // I should REMOVE the manual log here to avoid duplicates.
-            // await logActivity(profile?.uid!, adminName, `Approved admin registration for: ${reg.email}`);
-
-            toast.success("User approved!");
+            const sent = await sendNotification(
+                reg.email,
+                "ReLU Admin Access Approved",
+                `Congratulations! Your request to join the ReLU Admin Team has been approved.\n\nPlease log in at ${window.location.origin}/admin/login to complete your onboarding.`
+            );
+            if (sent) toast.success("User approved!");
+            else toast.warning("User approved, but the email could not be sent.");
         } catch (e) {
             console.error(e);
             toast.error("Error approving user");
@@ -100,34 +92,16 @@ export default function AdminUsersPage() {
     };
 
     const handleReject = async (reg: PendingRegistration) => {
-        if (!confirm(`Reject ${reg.email}? This will open your email client to notify them.`)) return;
+        if (!confirm(`Reject ${reg.email}? They will be emailed about the decision.`)) return;
         setLoading(true);
         try {
             await rejectRegistration(reg.id, profile?.uid, profile?.displayName || "Admin");
-            // Send Email
-            const subject = "ReLU Admin Access Update";
-            const body = "Your request to join the ReLU Admin Team has been declined at this time.\n\nIf you believe this is an error, please contact the club president.";
-
-            // Send Email via API (with auth token)
-            try {
-                const authHeaders = await getAuthHeaders();
-                await fetch('/api/send-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify({
-                        to: reg.email,
-                        subject,
-                        text: body,
-                        html: body.replace(/\n/g, '<br>')
-                    })
-                });
-            } catch (err) {
-                console.error("Failed to send email", err);
-            }
-
-            // Manual log removed as service handles it
-            // const adminName = profile?.displayName || "CTO";
-            // await logActivity(adminName, `Rejected admin registration for: ${reg.email}`);
+            const sent = await sendNotification(
+                reg.email,
+                "ReLU Admin Access Update",
+                "Your request to join the ReLU Admin Team has been declined at this time.\n\nIf you believe this is an error, please contact the club president."
+            );
+            if (!sent) toast.warning("Request rejected, but the email could not be sent.");
         } catch (e) {
             console.error(e);
             toast.error("Error rejecting user");

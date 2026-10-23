@@ -101,8 +101,9 @@ export async function isSystemInitialized(): Promise<boolean> {
         const snapshot = await getCountFromServer(collection(db, "admins"));
         return snapshot.data().count > 0;
     } catch (error) {
+        // Fail closed: only admins can list admins, so an error must never make the caller the first CTO.
         console.warn("Error checking system initialization:", error);
-        return false;
+        return true;
     }
 }
 

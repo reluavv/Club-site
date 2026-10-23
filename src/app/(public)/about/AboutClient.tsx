@@ -1,9 +1,9 @@
 "use client";
 
-import { AdminProfile, subscribeToAllAdmins } from "@/lib/api";
+import { AdminProfile } from "@/types";
 import TeamMember from "@/components/ui/TeamMember";
 import Image from "next/image";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { User } from "lucide-react";
 
 interface AboutClientProps {
@@ -36,18 +36,7 @@ const ROLE_LABELS: Record<string, string> = {
     "Activator": "Activator"
 };
 
-export default function AboutClient({ team: initialTeam }: AboutClientProps) {
-    const [team, setTeam] = useState<AdminProfile[]>(initialTeam);
-
-    useEffect(() => {
-        const unsubscribe = subscribeToAllAdmins((admins) => {
-            // Filter only active members
-            const activeUsers = admins.filter(u => u.status === "active" && u.role !== "pending");
-            setTeam(activeUsers);
-        });
-        return () => unsubscribe();
-    }, []);
-
+export default function AboutClient({ team }: AboutClientProps) {
     const { coreTeam, activators } = useMemo(() => {
         const sorted = [...team].sort((a, b) => {
             const rankA = HIERARCHY[a.role] || 999;

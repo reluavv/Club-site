@@ -17,7 +17,6 @@ export default function OnboardingPage() {
         displayName: "",
         rollNo: "",
         dob: "",
-        role: "Activator",
         socials: {
             linkedin: "",
             instagram: "",
@@ -25,11 +24,6 @@ export default function OnboardingPage() {
         }
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
-
-    const roles = [
-        "President", "VP_AIML", "VP_DSA", "CTO", "AdminHead",
-        "PRHead", "Treasurer", "Mentor", "Faculty", "Activator"
-    ];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,7 +38,6 @@ export default function OnboardingPage() {
 
             await updateAdminProfileData(user.uid, {
                 ...formData,
-                role: formData.role as any, // Cast string to Role enum
                 photoURL,
                 status: "active" // Graduate from onboarding
             });
@@ -103,13 +96,10 @@ export default function OnboardingPage() {
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-400 mb-2">Club Role</label>
-                            <select
-                                className="w-full bg-black/40 border border-white/10 rounded-lg p-3"
-                                value={formData.role}
-                                onChange={e => setFormData({ ...formData, role: e.target.value })}
-                            >
-                                {roles.map(r => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
-                            </select>
+                            {/* Roles are assigned by the CTO from Manage Admins. */}
+                            <p className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-gray-300">
+                                {profile?.role?.replace("_", " ")}
+                            </p>
                         </div>
                     </div>
 

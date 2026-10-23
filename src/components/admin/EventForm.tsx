@@ -30,7 +30,6 @@ export default function EventForm({ initialData, isEdit = false }: EventFormProp
             status: initialData?.status || "upcoming",
             registrationStatus: initialData?.registrationStatus || "upcoming",
             isFeedbackOpen: initialData?.isFeedbackOpen || false,
-            attendanceCode: initialData?.attendanceCode || "",
             avgRating: initialData?.avgRating || 0,
             feedbackCount: initialData?.feedbackCount || 0,
             minTeamSize: initialData?.minTeamSize || 1,

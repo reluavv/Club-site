@@ -12,7 +12,6 @@ export interface Event {
     status: "upcoming" | "ongoing" | "past"; // Display status
     registrationStatus: "upcoming" | "open" | "closed"; // Logic status
     isFeedbackOpen: boolean;
-    attendanceCode?: string; // If set, attendance is active
     attendanceStatus?: 'upcoming' | 'active' | 'ended'; // Lifecycle
     feedbackStatus?: 'upcoming' | 'active' | 'ended'; // Lifecycle
     avgRating?: number;
@@ -146,6 +145,16 @@ export interface TeamInvitation {
     status: 'pending' | 'accepted' | 'rejected';
     createdAt: any;
     respondedAt?: any;
+}
+
+// Public fields returned by the student search on /api/registrations.
+export type StudentSearchResult = Pick<UserProfile, "uid" | "displayName" | "rollNo" | "photoURL">;
+
+export interface AvailableTeam {
+    id: string; // registration id
+    teamName: string;
+    leaderName: string;
+    memberCount: number;
 }
 
 export interface Feedback {

@@ -5,7 +5,7 @@ import {
     X, Plus, Search, Loader2, AlertCircle, Send, Check, Clock,
     UserPlus, Users, ArrowLeft, User, Trash2, LogOut
 } from "lucide-react";
-import { Event, UserProfile, TeamInvitation, EventRegistration } from "@/types";
+import { Event, UserProfile, TeamInvitation, EventRegistration, AvailableTeam, StudentSearchResult } from "@/types";
 import {
     searchStudents, sendInvitation, subscribeToTeamInvitations,
     getAvailableTeams, requestToJoinTeam, deleteTeam, removeTeamMember
@@ -17,7 +17,7 @@ interface TeamRegistrationModalProps {
     userProfile: UserProfile;
     existingRegistration?: EventRegistration | null;
     onClose: () => void;
-    onRegister: (teamName: string, members: any[]) => Promise<void>;
+    onRegister: (teamName: string) => Promise<void>;
     onStatusChange?: () => void;
 }
 
@@ -43,13 +43,13 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
 
     // Search/Invite State (for Create flow)
     const [searchTerm, setSearchTerm] = useState("");
-    const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
+    const [searchResults, setSearchResults] = useState<StudentSearchResult[]>([]);
     const [searching, setSearching] = useState(false);
     const [sentInvitations, setSentInvitations] = useState<TeamInvitation[]>([]);
     const [sendingTo, setSendingTo] = useState<string | null>(null);
 
     // Join Team State
-    const [availableTeams, setAvailableTeams] = useState<EventRegistration[]>([]);
+    const [availableTeams, setAvailableTeams] = useState<AvailableTeam[]>([]);
     const [loadingTeams, setLoadingTeams] = useState(false);
     const [requestingTo, setRequestingTo] = useState<string | null>(null);
 
@@ -58,7 +58,7 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
         if (!confirm("Are you sure? This will disband the team and cancel all invitations. This action cannot be undone.")) return;
         setLoading(true);
         try {
-            await deleteTeam(event.id, userProfile.uid);
+            await deleteTeam(event.id);
             onStatusChange?.();
             onClose();
         } catch (e: any) {
@@ -159,7 +159,7 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
 
         setLoading(true);
         try {
-            await onRegister(teamName, []);
+            await onRegister(teamName);
             setTeamCreated(true);
         } catch (e: any) {
             console.error(e);
@@ -169,20 +169,11 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
         }
     };
 
-    const handleInvite = async (student: UserProfile) => {
+    const handleInvite = async (student: StudentSearchResult) => {
         setSendingTo(student.uid);
         setError("");
         try {
-            await sendInvitation({
-                eventId: event.id,
-                eventTitle: event.title,
-                teamName,
-                senderId: userProfile.uid,
-                senderName: userProfile.displayName || "Unknown",
-                targetUserId: student.uid,
-                targetName: student.displayName || "Unknown",
-                targetRollNo: student.rollNo || "",
-            });
+            await sendInvitation(event.id, student.uid);
             setSearchTerm("");
             setSearchResults([]);
         } catch (e: any) {
@@ -198,14 +189,14 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
     const loadAvailableTeams = useCallback(async () => {
         setLoadingTeams(true);
         try {
-            const teams = await getAvailableTeams(event.id, userProfile.uid);
+            const teams = await getAvailableTeams(event.id);
             setAvailableTeams(teams);
         } catch (e) {
             console.error("Failed to load teams", e);
         } finally {
             setLoadingTeams(false);
         }
-    }, [event.id, userProfile.uid]);
+    }, [event.id]);
 
     useEffect(() => {
         if (view === 'join') {
@@ -213,11 +204,11 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
         }
     }, [view, loadAvailableTeams]);
 
-    const handleRequestJoin = async (team: EventRegistration) => {
+    const handleRequestJoin = async (team: AvailableTeam) => {
         setRequestingTo(team.id);
         setError("");
         try {
-            await requestToJoinTeam(event.id, event.title, team, userProfile);
+            await requestToJoinTeam(event.id, team.id);
             await loadAvailableTeams();
         } catch (e: any) {
             console.error(e);
@@ -417,10 +408,10 @@ export default function TeamRegistrationModal({ event, userProfile, existingRegi
                                                 <h4 className="text-white font-bold">{team.teamName}</h4>
                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                                     <span className="flex items-center gap-1">
-                                                        <User size={12} /> {team.userDetails.name} (Leader)
+                                                        <User size={12} /> {team.leaderName} (Leader)
                                                     </span>
                                                     <span>•</span>
-                                                    <span>{1 + (team.teamMembers?.length || 0)}/{maxSize} Members</span>
+                                                    <span>{team.memberCount}/{maxSize} Members</span>
                                                 </div>
                                             </div>
                                         </div>

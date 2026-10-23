@@ -6,12 +6,11 @@ import { checkinForEvent } from "@/lib/api";
 
 interface CheckInModalProps {
     eventId: string;
-    userId: string;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export default function CheckInModal({ eventId, userId, onClose, onSuccess }: CheckInModalProps) {
+export default function CheckInModal({ eventId, onClose, onSuccess }: CheckInModalProps) {
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -22,7 +21,7 @@ export default function CheckInModal({ eventId, userId, onClose, onSuccess }: Ch
         setError("");
 
         try {
-            await checkinForEvent(eventId, userId, code);
+            await checkinForEvent(eventId, code);
             onSuccess();
             onClose();
         } catch (e: any) {

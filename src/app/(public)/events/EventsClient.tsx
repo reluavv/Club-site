@@ -118,7 +118,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
     const handleDirectRegistration = async (userProfile: any) => {
         if (!selectedEvent || !user) return;
         try {
-            await registerForEvent(selectedEvent.id, user.uid, userProfile);
+            await registerForEvent(selectedEvent.id);
             checkStatus();
         } catch (e: any) {
             setRegistrationError(e.message || "Failed to register.");
@@ -127,10 +127,9 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         }
     }
 
-    const handleTeamRegistration = async (teamName: string, members: any[]) => {
-        if (!selectedEvent || !user || !currentUserProfile) return;
-        // Call API with team details
-        await registerForEvent(selectedEvent.id, user.uid, currentUserProfile, { teamName, teamMembers: members });
+    const handleTeamRegistration = async (teamName: string) => {
+        if (!selectedEvent || !user) return;
+        await registerForEvent(selectedEvent.id, teamName);
         checkStatus();
         // Don't close modal here, let the user close it after inviting members
     };
@@ -198,10 +197,8 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
         // 2. Check Attendance Phase (Prioritized if Code is Active)
         // User update: "Start Event" != "Start Attendance".
-        // So we only show Check In if attendanceCode exists (implied active) OR attendanceStatus is active.
         // Even if status is 'ongoing', we wait for the Admin to click "Start Attendance" (which generates the code).
-
-        const isAttendanceActive = selectedEvent.attendanceStatus === 'active' || !!selectedEvent.attendanceCode;
+        const isAttendanceActive = selectedEvent.attendanceStatus === 'active';
 
         if (isAttendanceActive && registration) {
             if (isAttended) {
@@ -497,7 +494,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             {showCheckIn && selectedEvent && user && (
                 <CheckInModal
                     eventId={selectedEvent.id}
-                    userId={user.uid}
                     onClose={() => setShowCheckIn(false)}
                     onSuccess={() => checkStatus()}
                 />
@@ -506,9 +502,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             {showFeedback && selectedEvent && user && (
                 <FeedbackModal
                     eventId={selectedEvent.id}
-                    registrationId={registration?.id}
-                    userId={user.uid}
-                    userName={user.displayName || "User"}
                     onClose={() => setShowFeedback(false)}
                     onSuccess={() => checkStatus()}
                 />
