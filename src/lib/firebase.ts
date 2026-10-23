@@ -20,13 +20,10 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-let analytics: any;
 if (typeof window !== "undefined") {
     isSupported().then((supported) => {
-        if (supported) {
-            analytics = getAnalytics(app);
-        }
+        if (supported) getAnalytics(app);
     });
 }
 
-export { app, db, storage, auth, analytics };
+export { db, storage, auth };

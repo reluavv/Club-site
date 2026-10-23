@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, addDoc, deleteDoc, updateDoc, query, onSnapshot, setDoc, writeBatch, deleteField } from "firebase/firestore";
 import { Event } from "@/types";
-import { deleteFileByUrl } from "./common";
+import { deleteFileByUrl } from "./storage";
 import { getEventGallery, deleteFromGallery } from "./gallery";
 
 // --- Events API ---

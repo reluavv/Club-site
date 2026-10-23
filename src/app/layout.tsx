@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import AnalyticsListener from "@/components/AnalyticsListener";
 import { APP_METADATA } from "@/lib/constants";
 import Providers from "./providers";
 
@@ -55,7 +54,6 @@ export default function RootLayout({
             </head>
             <body className={`${outfit.variable} ${spaceGrotesk.variable} font-sans`}>
                 <Providers>
-                    <AnalyticsListener />
                     {children}
                 </Providers>
             </body>

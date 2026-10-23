@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Alumni } from "@/types";
-import { subscribeToAlumni, createAlumni, updateAlumni, deleteAlumni } from "@/services/alumni";
+import { subscribeToAlumni, createAlumni, updateAlumni, deleteAlumni } from "@/lib/api";
 import { GraduationCap, Plus, Trash2, Edit3, X, Save, Linkedin, Briefcase, Building2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 

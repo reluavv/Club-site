@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth, signOut } from "@/lib/auth";
-import { updateAdminProfileData, uploadImage, logActivity, deleteFile } from "@/lib/api";
+import { updateAdminProfileData, uploadImage, logActivity, deleteFileByUrl } from "@/lib/api";
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { LogOut, Save, Camera, User, Clock, ShieldCheck, Lock, Github, Linkedin, Instagram, Calendar, FileText } from "lucide-react";
@@ -83,7 +83,7 @@ export default function AdminProfilePage() {
 
                 // Delete old image if it exists and is different from the new one (and not null)
                 if (photo && photo !== newPhotoURL) {
-                    await deleteFile(photo);
+                    await deleteFileByUrl(photo);
                 }
             }
 

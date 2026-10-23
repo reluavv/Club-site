@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, query, orderBy, where, onSnapshot, runTransaction, Timestamp, getCountFromServer } from "firebase/firestore";
 import { AdminProfile, PendingRegistration } from "@/types";
-import { logAuditAction } from "./common";
+import { logActivity } from "./audit";
 import { deleteUserData } from "./users";
 
 // --- Constants ---
@@ -23,7 +23,7 @@ const ROLE_LIMITS: Record<string, number> = {
 
 // --- Helpers ---
 
-export async function checkRoleLimit(role: string): Promise<boolean> {
+async function checkRoleLimit(role: string): Promise<boolean> {
     const limit = ROLE_LIMITS[role];
     if (limit === undefined || limit === Infinity) return true;
 
@@ -45,7 +45,7 @@ export async function checkTenure(admin: AdminProfile) {
     if (now - start > TENURE_DURATION_MS) {
         console.warn(`Tenure expired for ${admin.email}. Deleting account.`);
         await deleteUserData(admin.uid);
-        await logAuditAction("SYSTEM", "System", "TENURE_EXPIRED", { targetUid: admin.uid, email: admin.email });
+        await logActivity("SYSTEM", "System", "TENURE_EXPIRED", { targetUid: admin.uid, email: admin.email });
         // Force logout is handled by Auth listener detecting user deletion
         return true; // Deleted
     }
@@ -124,7 +124,7 @@ export async function updateAdminRole(uid: string, role: string, actorUid?: stri
     await updateDoc(doc(db, "admins", uid), updates);
 
     if (actorUid) {
-        await logAuditAction(actorUid, actorName || "Unknown", "UPDATE_ROLE", { targetUid: uid, newRole: role });
+        await logActivity(actorUid, actorName || "Unknown", "UPDATE_ROLE", { targetUid: uid, newRole: role });
     }
 }
 
@@ -249,7 +249,7 @@ export async function approveRegistration(uid: string, actorUid?: string, actorN
     }, { merge: true });
 
     if (actorUid) {
-        await logAuditAction(actorUid, actorName || "Unknown", "APPROVE_ADMIN", { targetUid: uid, email });
+        await logActivity(actorUid, actorName || "Unknown", "APPROVE_ADMIN", { targetUid: uid, email });
     }
 }
 
@@ -259,7 +259,7 @@ export async function rejectRegistration(uid: string, actorUid?: string, actorNa
 
     // 2. Log Audit
     if (actorUid) {
-        await logAuditAction(actorUid, actorName || "Unknown", "REJECT_ADMIN", { targetUid: uid });
+        await logActivity(actorUid, actorName || "Unknown", "REJECT_ADMIN", { targetUid: uid });
     }
 }
 
@@ -324,7 +324,7 @@ export async function createAdminDirectly(email: string, pass: string, role: str
 
         // 4. Log Audit
         if (actorUid) {
-            await logAuditAction(actorUid, actorName || "Unknown", "CREATE_ADMIN_DIRECT", { targetUid: user.uid, email, role });
+            await logActivity(actorUid, actorName || "Unknown", "CREATE_ADMIN_DIRECT", { targetUid: user.uid, email, role });
         }
 
         // 5. Cleanup

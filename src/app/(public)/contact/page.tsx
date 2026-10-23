@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveMessage } from "@/services/messages"; // Ensure this alias maps to src/services
+import { saveMessage } from "@/lib/api";
 import { Mail, MapPin, Send, Loader2, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 export default function ContactPage() {

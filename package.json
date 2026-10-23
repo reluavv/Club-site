@@ -1,6 +1,6 @@
 {
     "name": "relu-website",
-    "version": "0.6.0",
+    "version": "0.6.3",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -9,7 +9,6 @@
         "lint": "next lint"
     },
     "dependencies": {
-        "clsx": "^2.1.0",
         "firebase": "^12.6.0",
         "firebase-admin": "^14.3.0",
         "framer-motion": "^11.18.2",
@@ -21,7 +20,6 @@
         "react": "^18",
         "react-dom": "^18",
         "react-markdown": "^10.1.0",
-        "tailwind-merge": "^2.2.0",
         "zod": "^4.1.13"
     },
     "devDependencies": {

@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, query, where, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { TeamInvitation, StudentSearchResult, AvailableTeam } from "@/types";
 import { callRegistrationsApi } from "./registrations";
 
@@ -68,18 +68,4 @@ export function subscribeToTeamInvitations(
         const invitations = snapshot.docs.map(d => d.data() as TeamInvitation);
         callback(invitations);
     });
-}
-
-// --- Check if a student has a pending/accepted invite for an event ---
-export async function getStudentInviteStatus(
-    eventId: string,
-    targetUserId: string
-): Promise<'pending' | 'accepted' | 'available'> {
-    const inviteId = `${eventId}_${targetUserId}`;
-    const invSnap = await getDoc(doc(db, "invitations", inviteId));
-
-    if (!invSnap.exists()) return 'available';
-
-    const data = invSnap.data() as TeamInvitation;
-    return data.status === 'pending' ? 'pending' : data.status === 'accepted' ? 'accepted' : 'available';
 }

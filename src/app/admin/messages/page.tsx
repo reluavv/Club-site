@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { subscribeToMessages, deleteMessage } from "@/services/messages";
+import { subscribeToMessages, deleteMessage } from "@/lib/api";
 import { ContactMessage } from "@/types";
 import { MessageSquare, Trash2, Mail, Clock, Search } from "lucide-react";
 

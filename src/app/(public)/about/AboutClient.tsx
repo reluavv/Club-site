@@ -109,19 +109,19 @@ export default function AboutClient({ team }: AboutClientProps) {
             <div className="max-w-7xl mx-auto px-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
                     {[
-                        { name: "Janke Yashwanth Reddy", img: "Janke Yashwanth Reddy.jpg" },
-                        { name: "Jerripothula Rakesh Naidu", img: "Jerripothula Rakesh Naidu.jpg" },
-                        { name: "Sricharan Vangoori", img: "Sricharan Vangoori.jpg" },
-                        { name: "Talasu Sai Nithin", img: "Talasu Sai Nithin.png" },
-                        { name: "Vadde Venkatasai", img: "Vadde Venkatasai.jpg" },
-                        { name: "Vivek Vignesh Baggam", img: "Vivek Vignesh Baggam.jpg" }
+                        { name: "Janke Yashwanth Reddy", img: "janke-yashwanth-reddy.jpg" },
+                        { name: "Jerripothula Rakesh Naidu", img: "jerripothula-rakesh-naidu.jpg" },
+                        { name: "Sricharan Vangoori", img: "sricharan-vangoori.jpg" },
+                        { name: "Talasu Sai Nithin", img: "talasu-sai-nithin.png" },
+                        { name: "Vadde Venkatasai", img: "vadde-venkatasai.jpg" },
+                        { name: "Vivek Vignesh Baggam", img: "vivek-vignesh-baggam.jpg" }
                     ].map((founder, i) => (
                         <div key={i} className="relative group w-full max-w-sm">
                             <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-2xl opacity-50 group-hover:opacity-100 transition duration-300 blur-sm group-hover:blur-md" />
                             <div className="relative h-full bg-black/80 backdrop-blur-xl rounded-2xl p-6 border border-yellow-500/30 flex flex-col items-center text-center">
                                 <div className="w-24 h-24 rounded-full border-2 border-yellow-500/50 mb-4 overflow-hidden shadow-[0_0_15px_rgba(234,179,8,0.3)] relative">
                                     <Image
-                                        src={`/images/founders/${encodeURIComponent(founder.img)}`}
+                                        src={`/images/founders/${founder.img}`}
                                         alt={founder.name}
                                         fill
                                         className="object-cover"

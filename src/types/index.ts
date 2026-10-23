@@ -20,22 +20,6 @@ export interface Event {
     maxTeamSize?: number; // Default 1
 }
 
-export interface TeamMember {
-    id: string;
-    name: string;
-    role: string;
-    image: string;
-    links: {
-        linkedin?: string;
-        github?: string;
-        mail?: string;
-        scholar?: string;
-    };
-    category: "core" | "mentors";
-}
-
-
-
 export interface Resource {
     id: string;
     title: string;

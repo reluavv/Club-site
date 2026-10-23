@@ -28,7 +28,7 @@ export default function TeamMember({ member }: TeamMemberProps) {
             <div className="member-image relative w-[clamp(120px,25vw,180px)] h-[clamp(120px,25vw,180px)] rounded-full mx-auto mb-[25px] overflow-hidden border-[4px] border-[#0099FF] shadow-[0_0_30px_rgba(0,153,255,0.3)] transition-all duration-400 group-hover:scale-110 group-hover:shadow-[0_0_50px_rgba(0,153,255,0.5)] flex-shrink-0">
                 {/* We use a standard img or Next.js Image. Since dynamic path, assume valid. */}
                 <Image
-                    src={member.image || "/placeholder-user.jpg"} // fallback
+                    src={member.image || "/images/placeholder-user.jpg"}
                     alt={member.name}
                     fill
                     className="object-cover transition-transform duration-400 group-hover:scale-110"

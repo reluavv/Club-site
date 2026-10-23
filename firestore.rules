@@ -79,22 +79,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /projects/{document} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /resources/{document} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /team_core/{document} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /team_mentors/{document} {
       allow read: if true;
       allow write: if isAdmin();
     }

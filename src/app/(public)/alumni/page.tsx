@@ -1,5 +1,5 @@
 import { GraduationCap, Linkedin, Briefcase, Building2 } from "lucide-react";
-import { getAlumni } from "@/services/alumni";
+import { getAlumni } from "@/lib/api";
 import { Alumni } from "@/types";
 import { Metadata } from "next";
 
