@@ -52,27 +52,27 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
     // Initial check when selecting an event
 
 
+    const selectedEventId = selectedEvent?.id;
     const checkStatus = useCallback(async () => {
-        if (!selectedEvent || !user) return;
+        if (!selectedEventId || !user) return;
         setCheckingStatus(true);
         try {
-            const reg = await checkRegistrationStatus(selectedEvent.id, user.uid);
+            const reg = await checkRegistrationStatus(selectedEventId, user.uid);
             setRegistration(reg);
         } catch (e) {
             console.error(e);
         } finally {
             setCheckingStatus(false);
         }
-    }, [selectedEvent?.id, user]);
+    }, [selectedEventId, user]);
 
     // Keep the open event in sync with live updates (e.g. feedback being opened)
     useEffect(() => {
-        if (selectedEvent) {
-            const updated = events.find(e => e.id === selectedEvent.id);
-            if (updated && JSON.stringify(updated) !== JSON.stringify(selectedEvent)) {
-                setSelectedEvent(updated);
-            }
-        }
+        setSelectedEvent((current) => {
+            if (!current) return current;
+            const updated = events.find(e => e.id === current.id);
+            return updated && JSON.stringify(updated) !== JSON.stringify(current) ? updated : current;
+        });
     }, [events]);
 
     // Initial check when selecting an event

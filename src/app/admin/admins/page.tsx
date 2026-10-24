@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { getAuthHeaders } from "@/lib/authHeaders";
 import { Check, X, Shield, Trash2, User } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { PasswordStrengthIndicator } from "@/components/ui/PasswordStrengthIndicator";
 
 export default function AdminUsersPage() {
     const { profile } = useAuth();
@@ -194,8 +195,9 @@ export default function AdminUsersPage() {
                                     className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
                                     value={createForm.password}
                                     onChange={e => setCreateForm({ ...createForm, password: e.target.value })}
-                                    placeholder="Min. 6 characters"
+                                    placeholder="Strong password"
                                 />
+                                <PasswordStrengthIndicator password={createForm.password} />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-400 mb-1">Role</label>

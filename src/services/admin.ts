@@ -3,6 +3,7 @@ import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, query, 
 import { AdminProfile, PendingRegistration } from "@/types";
 import { logActivity } from "./audit";
 import { deleteUserData } from "./users";
+import { isPasswordStrong } from "@/lib/schemas";
 
 // --- Constants ---
 const TENURE_DURATION_MS = 2 * 365 * 24 * 60 * 60 * 1000; // 2 Years
@@ -280,6 +281,10 @@ import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 
 export async function createAdminDirectly(email: string, pass: string, role: string, actorUid?: string, actorName?: string) {
+    if (!isPasswordStrong(pass)) {
+        throw new Error("Password must be at least 8 characters with uppercase, lowercase, a number and a special character.");
+    }
+
     // 0. Check Role Limit First
     if (!(await checkRoleLimit(role))) {
         throw new Error(`Role limit reached for ${role}. Cannot create.`);
