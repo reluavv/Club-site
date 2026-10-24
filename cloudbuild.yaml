@@ -37,7 +37,10 @@ steps:
       - '--platform'
       - 'managed'
       - '--set-env-vars'
-      - 'EMAIL_USER=$_EMAIL_USER,EMAIL_PASS=$_EMAIL_PASS'
+      - 'EMAIL_USER=$_EMAIL_USER'
+      # The Gmail app password lives in Secret Manager, not in the build command.
+      - '--set-secrets'
+      - 'EMAIL_PASS=email-pass:latest'
 images:
   - 'gcr.io/$PROJECT_ID/relu-website'
 
