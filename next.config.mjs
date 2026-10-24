@@ -2,6 +2,8 @@
 const nextConfig = {
     output: "standalone",
     poweredByHeader: false,
+    // Stop next dev from writing AGENTS.md into the repo.
+    agentRules: false,
     images: {
         remotePatterns: [
             {
