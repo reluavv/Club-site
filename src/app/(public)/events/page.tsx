@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     description: 'Stay updated with the latest events, workshops, and news from the ReLU AI/ML Club.',
 };
 
+export const revalidate = 0;
+
 export default async function EventsPage() {
     const events = await getEvents();
     return <EventsClient events={events} />;
