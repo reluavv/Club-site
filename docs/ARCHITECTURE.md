@@ -84,4 +84,4 @@ Environment variables are listed in `.env.example`:
 
 - `NEXT_PUBLIC_FIREBASE_*`: web app config, baked in at build time.
 - `FIREBASE_ADMIN_KEY`: base64 service account JSON for the Admin SDK. On Cloud Run it is left empty and the service account's default credentials are used. That account needs Firestore and Firebase Auth access.
-- `EMAIL_USER`, `EMAIL_PASS`: Gmail account and app password for `/api/send-email`.
+- `EMAIL_USER`, `EMAIL_PASS`: Gmail account and app password for `/api/send-email`. On Cloud Run, `EMAIL_PASS` comes from the `email-pass` secret in Secret Manager.

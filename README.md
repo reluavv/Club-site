@@ -48,7 +48,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for roles, the data model and h
 
 ## Deployment
 
-The site is deployed to Cloud Run with Cloud Build (`cloudbuild.yaml`). The build passes the `NEXT_PUBLIC_FIREBASE_*` values as Docker build args and sets `EMAIL_USER` and `EMAIL_PASS` on the service. These come from substitution variables on the Cloud Build trigger.
+The site is deployed to Cloud Run with Cloud Build (`cloudbuild.yaml`), run by hand. The `NEXT_PUBLIC_FIREBASE_*` values for the live project and `EMAIL_USER` are passed as `--substitutions` (for example `_NEXT_PUBLIC_FIREBASE_PROJECT_ID=relu-480416`); the Gmail app password is read by Cloud Run from the `email-pass` secret in Secret Manager.
 
 ```bash
 gcloud builds submit --config cloudbuild.yaml .
