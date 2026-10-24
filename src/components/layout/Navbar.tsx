@@ -107,8 +107,13 @@ export default function Navbar() {
                             className="relative group"
                             onMouseEnter={() => setResourcesOpen(true)}
                             onMouseLeave={() => setResourcesOpen(false)}
+                            onKeyDown={(e) => e.key === "Escape" && setResourcesOpen(false)}
                         >
                             <button
+                                type="button"
+                                onClick={() => setResourcesOpen((open) => !open)}
+                                aria-expanded={resourcesOpen}
+                                aria-controls="resources-menu"
                                 className={`
                                     relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2
                                     hover:bg-white/10 hover:text-white
@@ -121,7 +126,7 @@ export default function Navbar() {
                             </button>
 
                             {/* Dropdown Menu */}
-                            <div className={`
+                            <div id="resources-menu" className={`
                                 absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-48 
                                 bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden shadow-2xl 
                                 transition-all duration-300 origin-top
@@ -241,6 +246,8 @@ export default function Navbar() {
 
                             <button
                                 onClick={toggleMenu}
+                                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                                aria-expanded={mobileMenuOpen}
                                 className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full text-white"
                             >
                                 {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}

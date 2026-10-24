@@ -35,12 +35,19 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
     const [showCheckIn, setShowCheckIn] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
 
-    // Treat 'ongoing' as 'upcoming' so live events stay visible
-    const filteredEvents = events.filter((event) => {
-        if (filter === "all") return true;
-        if (filter === "upcoming") return event.status === "upcoming" || event.status === "ongoing";
-        return event.status === filter;
-    });
+    // Live events first, then upcoming (soonest first), then past (most recent first).
+    // Dates are free text from the admin form (e.g. "August 27, 2026"); unparseable ones sort last.
+    const STATUS_ORDER = { ongoing: 0, upcoming: 1, past: 2 };
+    const time = (date: string) => Date.parse(date) || Infinity;
+    const filteredEvents = events
+        // Treat 'ongoing' as 'upcoming' so live events stay visible
+        .filter((event) => {
+            if (filter === "all") return true;
+            if (filter === "upcoming") return event.status === "upcoming" || event.status === "ongoing";
+            return event.status === filter;
+        })
+        .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
+            || (a.status === "past" ? time(b.date) - time(a.date) : time(a.date) - time(b.date)));
 
     // Initial check when selecting an event
 

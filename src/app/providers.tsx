@@ -1,7 +1,6 @@
 "use client";
 
 import { ToastProvider } from "@/components/ui/Toast";
-import "@/lib/firebase"; // initialises Firebase Analytics on every page
 
 /**
  * Client-side providers wrapper.
