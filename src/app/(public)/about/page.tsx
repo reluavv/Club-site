@@ -4,7 +4,7 @@ import { getAdminFirestore } from '@/lib/firebaseAdmin';
 import { AdminProfile } from '@/types';
 
 export const metadata: Metadata = {
-    title: 'Team & About | ReLU',
+    title: 'Team & About',
     description: 'The current ReLU team and the founders of the club.',
 };
 

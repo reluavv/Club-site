@@ -4,7 +4,7 @@ import { Alumni } from "@/types";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Alumni Network | ReLU",
+    title: "Alumni Network",
     description: "Connect with past members of the ReLU AI&ML Club.",
 };
 

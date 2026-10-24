@@ -11,8 +11,8 @@ const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space
 export const metadata: Metadata = {
     metadataBase: new URL(APP_METADATA.SITE_URL),
     title: {
-        template: `%s | ${APP_METADATA.SITE_NAME}`,
-        default: APP_METADATA.SITE_NAME,
+        template: "%s | ReLU",
+        default: "ReLU | AI/ML and DSA Student Club, Amrita Amaravathi",
     },
     description: APP_METADATA.SITE_DESCRIPTION,
     keywords: ["AI", "Machine Learning", "Student Club", "ReLU", "Deep Learning", "Tech Community"],

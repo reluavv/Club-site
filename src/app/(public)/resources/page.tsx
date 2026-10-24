@@ -4,7 +4,7 @@ import { Metadata } from "next";
 import { getResources } from "@/lib/api";
 
 export const metadata: Metadata = {
-    title: "Learning Resources | ReLU",
+    title: "Learning Resources",
     description: "Curated collection of AI/ML and DSA resources for all levels.",
 };
 

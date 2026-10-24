@@ -3,7 +3,7 @@ import EventsClient from './EventsClient';
 import { getEvents } from '@/lib/api';
 
 export const metadata: Metadata = {
-    title: 'Events | ReLU - AI&ML Student Club',
+    title: 'Events',
     description: 'Stay updated with the latest events, workshops, and news from the ReLU AI/ML Club.',
 };
 
