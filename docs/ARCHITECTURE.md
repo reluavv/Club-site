@@ -4,7 +4,7 @@ How the ReLU website is put together, for whoever maintains it next.
 
 ## Overview
 
-- Next.js 14 App Router app in `src/app`, written in TypeScript and styled with Tailwind.
+- Next.js 16 App Router app in `src/app`, written in TypeScript and styled with Tailwind.
 - Firebase is the backend: Auth for accounts, Firestore for data, Storage for images and PDFs, Analytics for page views.
 - Most reads happen in the browser through the Firebase web SDK, guarded by `firestore.rules`.
 - Writes that need checks the rules can't express go through API routes in `src/app/api`. These use the Firebase Admin SDK and verify the caller's ID token first (`src/lib/serverAuth.ts`).

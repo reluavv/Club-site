@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { getEvent, getEventRegistrations, Event, EventRegistration } from "@/lib/api";
 import { ArrowLeft, Download, Users, User, Clock, CheckCircle, XCircle, Search } from "lucide-react";
 
-export default function EventRegistrationsPage({ params }: { params: { id: string } }) {
+export default function EventRegistrationsPage() {
+    const params = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [registrations, setRegistrations] = useState<EventRegistration[]>([]);
     const [loading, setLoading] = useState(true);

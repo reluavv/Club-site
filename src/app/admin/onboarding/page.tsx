@@ -42,6 +42,7 @@ export default function OnboardingPage() {
                 status: "active" // Graduate from onboarding
             });
 
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.href = "/admin"; // Full reload to refresh auth state/guard
         } catch (error) {
             console.error("Onboarding failed:", error);

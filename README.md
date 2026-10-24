@@ -4,7 +4,7 @@ Website and admin portal for ReLU (Refining Logic and Unleashing AI), the AI/ML 
 
 Students use it to sign up with their college email, register for events (solo or as a team), check in at events and give feedback. Club admins use the `/admin` portal to run events, attendance, the gallery, resources, alumni and the team list.
 
-Built with Next.js 14 (App Router), TypeScript, Tailwind CSS and Firebase (Auth, Firestore, Storage). Deployed on Google Cloud Run.
+Built with Next.js 16 (App Router), TypeScript, Tailwind CSS and Firebase (Auth, Firestore, Storage). Deployed on Google Cloud Run.
 
 ## Running locally
 
