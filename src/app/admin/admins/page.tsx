@@ -82,7 +82,7 @@ export default function AdminUsersPage() {
             const sent = await sendNotification(
                 reg.email,
                 "ReLU Admin Access Approved",
-                `Congratulations! Your request to join the ReLU Admin Team has been approved.\n\nPlease log in at ${window.location.origin}/admin/login to complete your onboarding.`
+                `Congratulations! Your request to join as an admin of the ReLU Club has been approved.\n\nWelcome to the team! Please log in at ${window.location.origin}/admin/login to get started.`
             );
             if (sent) toast.success("User approved!");
             else toast.warning("User approved, but the email could not be sent.");
@@ -100,7 +100,7 @@ export default function AdminUsersPage() {
             const sent = await sendNotification(
                 reg.email,
                 "ReLU Admin Access Update",
-                "Your request to join the ReLU Admin Team has been declined at this time.\n\nIf you believe this is an error, please contact the club president."
+                "Your request to join as an admin of the ReLU Club has been declined at this time.\n\nIf you believe this is an error, please contact the club Technical Team."
             );
             if (!sent) toast.warning("Request rejected, but the email could not be sent.");
         } catch (e) {
