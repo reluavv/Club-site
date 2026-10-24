@@ -16,13 +16,59 @@ cp .env.example .env.local   # then fill in the values
 npm run dev
 ```
 
-The site runs at http://localhost:3000. Ask the CTO for the Firebase config, the service account key and the mail credentials. Never commit `.env.local`.
+The site runs at http://localhost:3000. For day-to-day work, point `.env.local` at staging (see below). Never commit `.env.local`.
 
 Other scripts:
 
 ```bash
 npm run lint
 npm run build
+```
+
+## Working with staging
+
+There are two Firebase projects:
+
+- `relu-480416`: the live site on Cloud Run, with real student data.
+- `relu-staging`: test data only. The Vercel deployment (and every PR preview) uses it, and so should local development.
+
+### Getting access
+
+Each person uses their own Google account; nobody shares a key file. The CTO adds you in the Firebase console for **relu-staging** under Project settings → Users and permissions (Viewer to look around, Editor to develop). Access is removed the same way when someone leaves. Only add people to `relu-staging`, never to the live project.
+
+### Local setup
+
+1. Sign in once with your Google account (this is what the server code uses instead of a key):
+
+   ```bash
+   gcloud auth application-default login
+   gcloud auth application-default set-quota-project relu-staging
+   ```
+
+2. Put this in `.env.local`. These Firebase web values are public; they are already in the staging site's pages.
+
+   ```
+   NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyC25fTy1CbcVIEgjlKsFg3wII3C4hZaPWE
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=relu-staging.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=relu-staging
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=relu-staging.firebasestorage.app
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=806203876489
+   NEXT_PUBLIC_FIREBASE_APP_ID=1:806203876489:web:6338ebdf6c7a20ab56d258
+   FIREBASE_ADMIN_KEY=
+   EMAIL_USER=
+   EMAIL_PASS=
+   ```
+
+   Leave `FIREBASE_ADMIN_KEY` empty so your own login is used, and the email values empty so local runs never send mail.
+
+3. `npm run dev`. Sign in with a staging test account (ask the CTO) or sign up a new one.
+
+### Trying rule changes
+
+Run `npm run test:rules` (local emulators, no access needed), then deploy to staging before the live project:
+
+```bash
+firebase deploy --only firestore:rules,storage --project relu-staging
 ```
 
 ## Project layout
