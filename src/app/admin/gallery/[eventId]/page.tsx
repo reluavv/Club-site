@@ -16,7 +16,6 @@ export default function EventGalleryManager() {
     const eventId = params.eventId as string;
     const { profile } = useAuth();
     const toast = useToast();
-    // Note: in recent nextjs app dir, params are passed as props to page, but using useParams hook works in client component.
 
     const [event, setEvent] = useState<Event | null>(null);
     const [gallery, setGallery] = useState<GalleryImage[]>([]);
@@ -26,7 +25,7 @@ export default function EventGalleryManager() {
 
     // Upload State
     const [file, setFile] = useState<File | null>(null);
-    const [mediaType, setMediaType] = useState<'image' | 'video'>('image'); // Default to image for now
+    const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
 
     const loadData = useCallback(async () => {
         if (!eventId) return;
@@ -85,7 +84,6 @@ export default function EventGalleryManager() {
         if (!confirm("Are you sure you want to delete this item?")) return;
         try {
             await deleteFromGallery(id);
-            // Ideally also delete from storage, but requires tracking storage path/ref separately or extracting from URL
             if (event) {
                 const adminName = profile?.displayName || "Admin";
                 await logActivity(profile?.uid!, adminName, `Deleted image from gallery: ${event.title}`);

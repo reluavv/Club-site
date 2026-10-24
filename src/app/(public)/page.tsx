@@ -9,16 +9,16 @@ export default function Home() {
 
     return (
         <div className="flex flex-col items-center justify-start min-h-screen pt-32 md:pt-36 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center relative z-20">
-            {/* Hero Image */}
-            <div className="relative w-full max-w-[320px] md:max-w-[700px] lg:max-w-[900px] aspect-[3/1] mb-8 animate-[fadeIn_1s_ease-out]">
+            {/* The logo is the page heading */}
+            <h1 className="relative w-full max-w-[320px] md:max-w-[700px] lg:max-w-[900px] aspect-[3/1] mb-8 animate-[fadeIn_1s_ease-out]">
                 <Image
                     src="/images/light_text_logo.png"
-                    alt="ReLU Logo"
+                    alt="ReLU"
                     fill
                     className="object-contain drop-shadow-[0_0_25px_rgba(108,92,231,0.5)]"
                     priority
                 />
-            </div>
+            </h1>
 
             {/* Subtitle */}
             <p className="text-lg md:text-3xl lg:text-4xl text-gray-300 font-light tracking-[0.2em] uppercase mb-12 animate-[slideUp_1s_ease-out_0.3s_both] drop-shadow-lg">

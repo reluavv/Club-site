@@ -1,18 +1,15 @@
-// Re-export types
+// Single entry point for data access: shared types plus every Firestore service.
 export * from "@/types";
 
-// Re-export services
-export * from "@/services/common";
 export * from "@/services/admin";
-export * from "@/services/events";
-
-export * from "@/services/gallery";
-export * from "@/services/resources";
-
-export * from "@/services/users"; // Includes checkUserTenure, getUserProfile, etc.
-export * from "@/services/settings";
-export * from "@/services/registrations";
-export * from "@/services/invitations";
+export * from "@/services/alumni";
 export * from "@/services/audit";
+export * from "@/services/events";
+export * from "@/services/gallery";
+export * from "@/services/invitations";
 export * from "@/services/messages";
-
+export * from "@/services/registrations";
+export * from "@/services/resources";
+export * from "@/services/settings";
+export * from "@/services/storage";
+export * from "@/services/users";

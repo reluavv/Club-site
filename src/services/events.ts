@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, addDoc, deleteDoc, updateDoc, query, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, addDoc, deleteDoc, updateDoc, query, onSnapshot, setDoc, writeBatch, deleteField } from "firebase/firestore";
 import { Event } from "@/types";
-import { deleteFileByUrl } from "./common";
+import { deleteFileByUrl } from "./storage";
 import { getEventGallery, deleteFromGallery } from "./gallery";
 
 // --- Events API ---
@@ -40,7 +40,7 @@ export async function deleteEvent(id: string) {
         const eventData = eventSnap.data() as Event;
 
         // 2. Delete all Gallery items associated with this event
-        // We use deleteFromGallery because it now handles file deletion for each item
+        // deleteFromGallery also removes each item's file from Storage
         const galleryImages = await getEventGallery(id);
         const galleryDeletePromises = galleryImages.map(img => deleteFromGallery(img.id));
         await Promise.all(galleryDeletePromises);
@@ -74,6 +74,27 @@ export async function getEvent(id: string): Promise<Event | null> {
 
 export async function updateEvent(id: string, data: Partial<Event>) {
     await updateDoc(doc(db, "events", id), data);
+}
+
+// --- Attendance ---
+// The code lives in admin-only 'event_secrets/{eventId}'; the public event doc only says whether attendance is open.
+// deleteField() also clears codes left on event docs by older versions.
+
+export async function startAttendance(eventId: string, code: string) {
+    await setDoc(doc(db, "event_secrets", eventId), { code, failures: {} });
+    await updateDoc(doc(db, "events", eventId), { attendanceStatus: "active", attendanceCode: deleteField() });
+}
+
+export async function stopAttendance(eventId: string) {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, "event_secrets", eventId));
+    batch.update(doc(db, "events", eventId), { attendanceStatus: "ended", attendanceCode: deleteField() });
+    await batch.commit();
+}
+
+export async function getAttendanceCode(eventId: string): Promise<string | null> {
+    const snap = await getDoc(doc(db, "event_secrets", eventId));
+    return snap.exists() ? snap.data().code : null;
 }
 
 export function subscribeToEvent(id: string, callback: (event: Event | null) => void) {

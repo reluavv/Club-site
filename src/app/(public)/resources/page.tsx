@@ -4,7 +4,7 @@ import { Metadata } from "next";
 import { getResources } from "@/lib/api";
 
 export const metadata: Metadata = {
-    title: "Learning Resources | ReLU",
+    title: "Learning Resources",
     description: "Curated collection of AI/ML and DSA resources for all levels.",
 };
 
@@ -13,10 +13,10 @@ export const revalidate = 0;
 export default async function ResourcesPage({
     searchParams,
 }: {
-    searchParams: { [key: string]: string | string[] | undefined };
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
     const allResources = await getResources();
-    const category = searchParams?.category;
+    const { category } = await searchParams;
 
     // Default to AIML if no category specified
     const activeCategory = (category && typeof category === 'string') ? category : "AIML";

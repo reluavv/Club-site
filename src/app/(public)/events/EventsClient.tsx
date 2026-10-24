@@ -35,37 +35,44 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
     const [showCheckIn, setShowCheckIn] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
 
-    // Filter logic — treat 'ongoing' as 'upcoming' so live events stay visible
-    const filteredEvents = events.filter((event) => {
-        if (filter === "all") return true;
-        if (filter === "upcoming") return event.status === "upcoming" || event.status === "ongoing";
-        return event.status === filter;
-    });
+    // Live events first, then upcoming (soonest first), then past (most recent first).
+    // Dates are free text from the admin form (e.g. "August 27, 2026"); unparseable ones sort last.
+    const STATUS_ORDER = { ongoing: 0, upcoming: 1, past: 2 };
+    const time = (date: string) => Date.parse(date) || Infinity;
+    const filteredEvents = events
+        // Treat 'ongoing' as 'upcoming' so live events stay visible
+        .filter((event) => {
+            if (filter === "all") return true;
+            if (filter === "upcoming") return event.status === "upcoming" || event.status === "ongoing";
+            return event.status === filter;
+        })
+        .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
+            || (a.status === "past" ? time(b.date) - time(a.date) : time(a.date) - time(b.date)));
 
     // Initial check when selecting an event
 
 
+    const selectedEventId = selectedEvent?.id;
     const checkStatus = useCallback(async () => {
-        if (!selectedEvent || !user) return;
+        if (!selectedEventId || !user) return;
         setCheckingStatus(true);
         try {
-            const reg = await checkRegistrationStatus(selectedEvent.id, user.uid);
+            const reg = await checkRegistrationStatus(selectedEventId, user.uid);
             setRegistration(reg);
         } catch (e) {
             console.error(e);
         } finally {
             setCheckingStatus(false);
         }
-    }, [selectedEvent?.id, user]);
+    }, [selectedEventId, user]);
 
-    // Update selectedEvent when events changes (Fix for live feedback toggle)
+    // Keep the open event in sync with live updates (e.g. feedback being opened)
     useEffect(() => {
-        if (selectedEvent) {
-            const updated = events.find(e => e.id === selectedEvent.id);
-            if (updated && JSON.stringify(updated) !== JSON.stringify(selectedEvent)) {
-                setSelectedEvent(updated);
-            }
-        }
+        setSelectedEvent((current) => {
+            if (!current) return current;
+            const updated = events.find(e => e.id === current.id);
+            return updated && JSON.stringify(updated) !== JSON.stringify(current) ? updated : current;
+        });
     }, [events]);
 
     // Initial check when selecting an event
@@ -118,7 +125,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
     const handleDirectRegistration = async (userProfile: any) => {
         if (!selectedEvent || !user) return;
         try {
-            await registerForEvent(selectedEvent.id, user.uid, userProfile);
+            await registerForEvent(selectedEvent.id);
             checkStatus();
         } catch (e: any) {
             setRegistrationError(e.message || "Failed to register.");
@@ -127,10 +134,9 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
         }
     }
 
-    const handleTeamRegistration = async (teamName: string, members: any[]) => {
-        if (!selectedEvent || !user || !currentUserProfile) return;
-        // Call API with team details
-        await registerForEvent(selectedEvent.id, user.uid, currentUserProfile, { teamName, teamMembers: members });
+    const handleTeamRegistration = async (teamName: string) => {
+        if (!selectedEvent || !user) return;
+        await registerForEvent(selectedEvent.id, teamName);
         checkStatus();
         // Don't close modal here, let the user close it after inviting members
     };
@@ -167,8 +173,8 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
 
         // Check Feedback Submission status (Refined for Teams)
         const isFeedbackSubmitted = user && registration && (
-            (registration.feedbackMap && registration.feedbackMap[user.uid]) || // Explicit individual check (New)
-            (!registration.feedbackMap && registration.feedbackSubmitted) // Legacy fallback (only if map missing)
+            (registration.feedbackMap && registration.feedbackMap[user.uid]) ||
+            (!registration.feedbackMap && registration.feedbackSubmitted) // older registrations without feedbackMap
         );
 
         // 1. Check Feedback Phase (Prioritized if Active)
@@ -193,15 +199,11 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                     </Link>
                 );
             }
-            // If not attended, fall through...
         }
 
         // 2. Check Attendance Phase (Prioritized if Code is Active)
-        // User update: "Start Event" != "Start Attendance".
-        // So we only show Check In if attendanceCode exists (implied active) OR attendanceStatus is active.
-        // Even if status is 'ongoing', we wait for the Admin to click "Start Attendance" (which generates the code).
-
-        const isAttendanceActive = selectedEvent.attendanceStatus === 'active' || !!selectedEvent.attendanceCode;
+        // Starting an event does not open attendance; an admin starts it separately from the Forms page.
+        const isAttendanceActive = selectedEvent.attendanceStatus === 'active';
 
         if (isAttendanceActive && registration) {
             if (isAttended) {
@@ -211,7 +213,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                     </button>
                 );
             } else if (registration.status === 'registered' || registration.status === 'attended') {
-                // Note: 'attended' status users might re-open modal to see code? No, usually disabled above.
                 // But if local logic fails, this catches it.
                 return (
                     <button
@@ -288,7 +289,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             );
         }
 
-        // 5. Past Event — ONLY for 'past' status, NOT 'ongoing'
+        // 5. Past event: only for 'past' status, not 'ongoing'
         if (selectedEvent.status === 'past') {
             return (
                 <Link
@@ -378,7 +379,7 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
                                         event.status === 'upcoming' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
                                         'bg-gray-500/20 text-gray-400 border-gray-500/30'
                                     }`}>
-                                        {event.status === 'ongoing' ? '🔴 Live' : event.status === 'upcoming' ? 'Upcoming' : 'Past'}
+                                        {event.status === 'ongoing' ? 'Live' : event.status === 'upcoming' ? 'Upcoming' : 'Past'}
                                     </span>
                                 </div>
                             </div>
@@ -497,7 +498,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             {showCheckIn && selectedEvent && user && (
                 <CheckInModal
                     eventId={selectedEvent.id}
-                    userId={user.uid}
                     onClose={() => setShowCheckIn(false)}
                     onSuccess={() => checkStatus()}
                 />
@@ -506,9 +506,6 @@ export default function EventsClient({ events: initialEvents }: { events: Event[
             {showFeedback && selectedEvent && user && (
                 <FeedbackModal
                     eventId={selectedEvent.id}
-                    registrationId={registration?.id}
-                    userId={user.uid}
-                    userName={user.displayName || "User"}
                     onClose={() => setShowFeedback(false)}
                     onSuccess={() => checkStatus()}
                 />

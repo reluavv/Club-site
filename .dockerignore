@@ -2,4 +2,5 @@ node_modules
 .next
 .git
 .DS_Store
-legacy_static
+.env*.local
+docs

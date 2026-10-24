@@ -1,12 +1,12 @@
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, query, orderBy, where, onSnapshot, runTransaction, Timestamp, getCountFromServer } from "firebase/firestore";
 import { AdminProfile, PendingRegistration } from "@/types";
-import { logAuditAction } from "./common";
+import { logActivity } from "./audit";
 import { deleteUserData } from "./users";
+import { isPasswordStrong } from "@/lib/schemas";
 
 // --- Constants ---
 const TENURE_DURATION_MS = 2 * 365 * 24 * 60 * 60 * 1000; // 2 Years
-// const TENURE_DURATION_MS = 2 * 60 * 1000; // 2 Minutes (Debug)
 
 const ROLE_LIMITS: Record<string, number> = {
     "President": 1,
@@ -23,7 +23,7 @@ const ROLE_LIMITS: Record<string, number> = {
 
 // --- Helpers ---
 
-export async function checkRoleLimit(role: string): Promise<boolean> {
+async function checkRoleLimit(role: string): Promise<boolean> {
     const limit = ROLE_LIMITS[role];
     if (limit === undefined || limit === Infinity) return true;
 
@@ -45,7 +45,7 @@ export async function checkTenure(admin: AdminProfile) {
     if (now - start > TENURE_DURATION_MS) {
         console.warn(`Tenure expired for ${admin.email}. Deleting account.`);
         await deleteUserData(admin.uid);
-        await logAuditAction("SYSTEM", "System", "TENURE_EXPIRED", { targetUid: admin.uid, email: admin.email });
+        await logActivity("SYSTEM", "System", "TENURE_EXPIRED", { targetUid: admin.uid, email: admin.email });
         // Force logout is handled by Auth listener detecting user deletion
         return true; // Deleted
     }
@@ -101,29 +101,22 @@ export async function isSystemInitialized(): Promise<boolean> {
         const snapshot = await getCountFromServer(collection(db, "admins"));
         return snapshot.data().count > 0;
     } catch (error) {
+        // Fail closed: only admins can list admins, so an error must never make the caller the first CTO.
         console.warn("Error checking system initialization:", error);
-        return false;
+        return true;
     }
 }
 
-// Updated to prevent exceeding limits
 export async function updateAdminRole(uid: string, role: string, actorUid?: string, actorName?: string) {
     // 1. Check Limit
     if (!(await checkRoleLimit(role))) {
         throw new Error(`Role limit reached for ${role}. Cannot assign.`);
     }
 
-    const updates: any = { role };
-    // If promoting from pending/onboarding
-    if (role !== "pending") {
-        // Keep original approvedAt if exists, else set it
-        // But usually we just update the role string here
-    }
-
-    await updateDoc(doc(db, "admins", uid), updates);
+    await updateDoc(doc(db, "admins", uid), { role });
 
     if (actorUid) {
-        await logAuditAction(actorUid, actorName || "Unknown", "UPDATE_ROLE", { targetUid: uid, newRole: role });
+        await logActivity(actorUid, actorName || "Unknown", "UPDATE_ROLE", { targetUid: uid, newRole: role });
     }
 }
 
@@ -248,7 +241,7 @@ export async function approveRegistration(uid: string, actorUid?: string, actorN
     }, { merge: true });
 
     if (actorUid) {
-        await logAuditAction(actorUid, actorName || "Unknown", "APPROVE_ADMIN", { targetUid: uid, email });
+        await logActivity(actorUid, actorName || "Unknown", "APPROVE_ADMIN", { targetUid: uid, email });
     }
 }
 
@@ -258,7 +251,7 @@ export async function rejectRegistration(uid: string, actorUid?: string, actorNa
 
     // 2. Log Audit
     if (actorUid) {
-        await logAuditAction(actorUid, actorName || "Unknown", "REJECT_ADMIN", { targetUid: uid });
+        await logActivity(actorUid, actorName || "Unknown", "REJECT_ADMIN", { targetUid: uid });
     }
 }
 
@@ -288,6 +281,10 @@ import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 
 export async function createAdminDirectly(email: string, pass: string, role: string, actorUid?: string, actorName?: string) {
+    if (!isPasswordStrong(pass)) {
+        throw new Error("Password must be at least 8 characters with uppercase, lowercase, a number and a special character.");
+    }
+
     // 0. Check Role Limit First
     if (!(await checkRoleLimit(role))) {
         throw new Error(`Role limit reached for ${role}. Cannot create.`);
@@ -323,7 +320,7 @@ export async function createAdminDirectly(email: string, pass: string, role: str
 
         // 4. Log Audit
         if (actorUid) {
-            await logAuditAction(actorUid, actorName || "Unknown", "CREATE_ADMIN_DIRECT", { targetUid: user.uid, email, role });
+            await logActivity(actorUid, actorName || "Unknown", "CREATE_ADMIN_DIRECT", { targetUid: user.uid, email, role });
         }
 
         // 5. Cleanup

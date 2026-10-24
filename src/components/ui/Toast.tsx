@@ -28,7 +28,7 @@ const ToastContext = createContext<ToastContextType | null>(null);
 export function useToast(): ToastContextType {
     const ctx = useContext(ToastContext);
     if (!ctx) {
-        // Fallback for components outside the provider — uses alert() as graceful degradation
+        // Outside the provider, fall back to alert()
         return {
             toast: (msg) => alert(msg),
             success: (msg) => alert(msg),
@@ -108,7 +108,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <ToastContext.Provider value={contextValue}>
             {children}
 
-            {/* Toast Container — Fixed top-right */}
+            {/* Toast container, fixed top-right */}
             <div className="fixed top-4 right-4 z-[100] flex flex-col gap-3 pointer-events-none max-w-sm w-full">
                 {toasts.map((t) => {
                     const Icon = ICON_MAP[t.type];

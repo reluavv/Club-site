@@ -17,7 +17,6 @@ export default function OnboardingPage() {
         displayName: "",
         rollNo: "",
         dob: "",
-        role: "Activator",
         socials: {
             linkedin: "",
             instagram: "",
@@ -25,11 +24,6 @@ export default function OnboardingPage() {
         }
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
-
-    const roles = [
-        "President", "VP_AIML", "VP_DSA", "CTO", "AdminHead",
-        "PRHead", "Treasurer", "Mentor", "Faculty", "Activator"
-    ];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,11 +38,11 @@ export default function OnboardingPage() {
 
             await updateAdminProfileData(user.uid, {
                 ...formData,
-                role: formData.role as any, // Cast string to Role enum
                 photoURL,
                 status: "active" // Graduate from onboarding
             });
 
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.href = "/admin"; // Full reload to refresh auth state/guard
         } catch (error) {
             console.error("Onboarding failed:", error);
@@ -61,7 +55,7 @@ export default function OnboardingPage() {
     return (
         <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
             <div className="max-w-2xl w-full bg-white/5 border border-white/10 rounded-2xl p-8">
-                <h1 className="text-3xl font-bold mb-2">Welcome to the Team! 🚀</h1>
+                <h1 className="text-3xl font-bold mb-2">Welcome to the team</h1>
                 <p className="text-gray-400 mb-8">Please complete your profile to access the dashboard.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -103,13 +97,10 @@ export default function OnboardingPage() {
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-400 mb-2">Club Role</label>
-                            <select
-                                className="w-full bg-black/40 border border-white/10 rounded-lg p-3"
-                                value={formData.role}
-                                onChange={e => setFormData({ ...formData, role: e.target.value })}
-                            >
-                                {roles.map(r => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
-                            </select>
+                            {/* Roles are assigned by the CTO from Manage Admins. */}
+                            <p className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-gray-300">
+                                {profile?.role?.replace("_", " ")}
+                            </p>
                         </div>
                     </div>
 
@@ -163,7 +154,7 @@ export default function OnboardingPage() {
                                 <div className="h-full bg-blue-500 transition-all duration-300 origin-left" style={{ width: `${progress}%` }}></div>
                             </div>
                         )}
-                        <span className="relative z-10">{loading ? `Setting up details... ${Math.round(progress)}%` : "Complete Setup 🚀"}</span>
+                        <span className="relative z-10">{loading ? `Setting up details... ${Math.round(progress)}%` : "Complete Setup"}</span>
                     </button>
                 </form>
             </div>

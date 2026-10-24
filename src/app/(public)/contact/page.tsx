@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveMessage } from "@/services/messages"; // Ensure this alias maps to src/services
+import { saveMessage } from "@/lib/api";
 import { Mail, MapPin, Send, Loader2, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
 export default function ContactPage() {
@@ -60,7 +60,7 @@ export default function ContactPage() {
                         Get in Touch
                     </h1>
                     <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                        Have a question, idea, or just want to connect? We&apos;re always open to discussing new projects, creative ideas, or opportunities to be part of your vision.
+                        Questions about events, workshops or joining the club? Send us a message below or email us directly.
                     </p>
                 </div>
 
@@ -99,11 +99,11 @@ export default function ContactPage() {
                             </div>
                         </div>
 
-                        {/* Social Proof / Trust */}
+                        {/* Sign-up prompt */}
                         <div className="p-8 rounded-3xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 border border-white/10">
                             <h3 className="text-2xl font-bold text-white mb-4">Join the Community</h3>
                             <p className="text-gray-400 mb-6">
-                                Be part of a growing network of student developers and innovators.
+                                Create an account with your college email to register for events and workshops.
                             </p>
                             <a
                                 href="/auth/signup"

@@ -20,13 +20,12 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-let analytics: any;
-if (typeof window !== "undefined") {
+// Analytics sets cookies, so it only starts once the visitor accepts them (see CookieConsent).
+export function enableAnalytics() {
+    if (typeof window === "undefined") return;
     isSupported().then((supported) => {
-        if (supported) {
-            analytics = getAnalytics(app);
-        }
+        if (supported) getAnalytics(app);
     });
 }
 
-export { app, db, storage, auth, analytics };
+export { db, storage, auth };

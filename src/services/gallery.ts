@@ -1,20 +1,9 @@
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, orderBy, Timestamp, where, onSnapshot } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, Timestamp, where, onSnapshot } from "firebase/firestore";
 import { GalleryImage } from "@/types";
-import { deleteFileByUrl } from "./common";
+import { deleteFileByUrl } from "./storage";
 
 // --- Gallery API ---
-
-export async function getGallery(): Promise<GalleryImage[]> {
-    try {
-        const q = query(collection(db, "gallery"), orderBy("timestamp", "desc"));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as GalleryImage));
-    } catch (error) {
-        console.warn("Firebase fetch failed (Gallery):", error);
-        return [];
-    }
-}
 
 export async function getEventGallery(eventId: string): Promise<GalleryImage[]> {
     try {

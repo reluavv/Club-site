@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { ClipboardList, Users, MessageSquare, Play, StopCircle, CheckCircle, AlertCircle, Trash2, Download } from "lucide-react";
+import { ClipboardList, MessageSquare, Play, StopCircle, CheckCircle, Trash2, Download } from "lucide-react";
+import DataViewerModal from "@/components/admin/DataViewerModal";
 import { useState, useEffect } from "react";
-import { getEvents, updateEvent, logActivity, purgeEventData, getEventRegistrations } from "@/lib/api";
+import { getEvents, updateEvent, logActivity, purgeEventData, getEventRegistrations, startAttendance, stopAttendance, getAttendanceCode } from "@/lib/api";
 import { convertToCSV } from "@/lib/csvUtils";
 
 import { Event } from "@/types";
@@ -12,9 +12,10 @@ import { useAuth } from "@/lib/auth";
 export default function FormsDashboard() {
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
+    const [attendanceCodes, setAttendanceCodes] = useState<Record<string, string>>({});
     const { profile } = useAuth();
 
-    const [stats, setStats] = useState({ totalAttendees: 0, avgRating: 0, feedbackCount: 0 });
+    const [activeModal, setActiveModal] = useState<'registrations' | 'attendance' | 'feedbacks' | null>(null);
 
     useEffect(() => {
         loadData();
@@ -23,24 +24,7 @@ export default function FormsDashboard() {
     const loadData = async () => {
         const data = await getEvents();
 
-        // Calculate Stats
-        let totalRatingSum = 0;
-        let totalFeedbackCount = 0;
-
-        data.forEach(e => {
-            if (e.avgRating && e.feedbackCount) {
-                totalRatingSum += (e.avgRating * e.feedbackCount);
-                totalFeedbackCount += e.feedbackCount;
-            }
-        });
-
-        const calculatedAvg = totalFeedbackCount > 0 ? (totalRatingSum / totalFeedbackCount).toFixed(1) : "0.0";
-
-        setStats({
-            totalAttendees: 0,
-            avgRating: parseFloat(calculatedAvg),
-            feedbackCount: totalFeedbackCount
-        });
+        // Stats are now computed per-event inside the modal
 
         // Sort: Active/Open events first, then by date
         const sorted = data.sort((a, b) => {
@@ -60,6 +44,10 @@ export default function FormsDashboard() {
             return b.date.localeCompare(a.date);
         });
         setEvents(sorted);
+
+        const active = sorted.filter(e => e.attendanceStatus === 'active');
+        const codes = await Promise.all(active.map(e => getAttendanceCode(e.id)));
+        setAttendanceCodes(Object.fromEntries(active.map((e, i) => [e.id, codes[i] || ''])));
         setLoading(false);
     };
 
@@ -134,17 +122,12 @@ export default function FormsDashboard() {
 
             if (!confirm(`${action} attendance for "${event.title}"? New Code: ${code}`)) return;
 
-            await updateEvent(event.id, { attendanceCode: code, attendanceStatus: 'active' });
+            await startAttendance(event.id, code);
             await logActivity(profile?.uid!, profile?.displayName || "Admin", `${action}ed attendance for: ${event.title}`);
-        } else if (currentStatus === 'active') {
-            // Stop
-            if (!confirm(`STOP attendance for "${event.title}"?`)) return;
-            await updateEvent(event.id, { attendanceCode: '', attendanceStatus: 'ended' });
-            await logActivity(profile?.uid!, profile?.displayName || "Admin", `Ended attendance for: ${event.title}`);
         } else {
-            // Fallback (Active but weird state)
             if (!confirm(`STOP attendance for "${event.title}"?`)) return;
-            await updateEvent(event.id, { attendanceCode: '', attendanceStatus: 'ended' });
+            await stopAttendance(event.id);
+            await logActivity(profile?.uid!, profile?.displayName || "Admin", `Ended attendance for: ${event.title}`);
         }
         loadData();
     };
@@ -224,36 +207,35 @@ export default function FormsDashboard() {
         convertToCSV(csvData, `${event.title.replace(/\s+/g, '_')}_Report`);
     };
 
-    const [selectedEventForFeedback, setSelectedEventForFeedback] = useState<Event | null>(null);
-
     return (
         <div className="max-w-6xl mx-auto text-white">
             <h1 className="text-3xl font-bold mb-8">Forms & Data</h1>
 
             {/* Quick Stats / Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <Link href="/admin/forms/registrations" className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02]">
+                <button onClick={() => setActiveModal('registrations')} className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02] text-left">
                     <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 text-blue-400 group-hover:scale-110 transition-transform">
                         <ClipboardList size={24} />
                     </div>
                     <h2 className="text-xl font-bold mb-2">Registrations</h2>
-                    <p className="text-gray-400 text-sm">View full detailed logs.</p>
-                </Link>
-                {/* Stats placeholders */}
-                <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
-                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 text-purple-400">
-                        <Users size={24} />
+                    <p className="text-gray-400 text-sm">View registrations by event.</p>
+                </button>
+
+                <button onClick={() => setActiveModal('attendance')} className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02] text-left">
+                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4 text-green-400 group-hover:scale-110 transition-transform">
+                        <CheckCircle size={24} />
                     </div>
-                    <h2 className="text-xl font-bold mb-2">Total Feedbacks</h2>
-                    <p className="text-gray-400 text-sm">{stats.feedbackCount}</p>
-                </div>
-                <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
-                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-4 text-green-400">
+                    <h2 className="text-xl font-bold mb-2">Attendance</h2>
+                    <p className="text-gray-400 text-sm">View attended students by event.</p>
+                </button>
+
+                <button onClick={() => setActiveModal('feedbacks')} className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all hover:scale-[1.02] text-left">
+                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 text-purple-400 group-hover:scale-110 transition-transform">
                         <MessageSquare size={24} />
                     </div>
-                    <h2 className="text-xl font-bold mb-2">Avg Rating</h2>
-                    <p className="text-gray-400 text-sm">{stats.avgRating} / 5.0</p>
-                </div>
+                    <h2 className="text-xl font-bold mb-2">Feedbacks</h2>
+                    <p className="text-gray-400 text-sm">View feedback submissions by event.</p>
+                </button>
             </div>
 
             <h2 className="text-2xl font-bold mb-6">Event Lifecycle Manager</h2>
@@ -319,13 +301,13 @@ export default function FormsDashboard() {
                                     <button
                                         onClick={() => handleToggleAttendance(event)}
                                         disabled={!event.registrationStatus || event.registrationStatus === 'upcoming'}
-                                        className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${event.attendanceStatus === 'active' || (event.attendanceCode && !event.attendanceStatus)
+                                        className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${event.attendanceStatus === 'active'
                                             ? 'bg-purple-500/20 text-purple-400 border-purple-500/50 hover:bg-purple-500/30'
                                             : (event.attendanceStatus === 'ended' ? 'bg-gray-500/10 text-gray-500 border-gray-600 hover:border-white/50 hover:text-white' : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/30')
                                             }`}
                                     >
                                         {event.attendanceStatus === 'ended' ? 'RESTART' : (
-                                            event.attendanceStatus === 'active' || event.attendanceCode ? <><StopCircle size={14} /> STOP ({event.attendanceCode})</> : <><Play size={14} /> START</>
+                                            event.attendanceStatus === 'active' ? <><StopCircle size={14} /> STOP ({attendanceCodes[event.id]})</> : <><Play size={14} /> START</>
                                         )}
                                     </button>
                                 </td>
@@ -354,7 +336,7 @@ export default function FormsDashboard() {
                                     </button>
 
                                     <button
-                                        onClick={() => setSelectedEventForFeedback(event)}
+                                        onClick={() => setActiveModal('feedbacks')}
                                         className="p-2 text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
                                         title="View Feedback"
                                     >
@@ -364,7 +346,7 @@ export default function FormsDashboard() {
                                     {profile?.role === 'CTO' && (
                                         <button
                                             onClick={async () => {
-                                                const confirmation = prompt(`⚠️ DANGER: PURGE DATA for "${event.title}"?\n\nThis will DELETE ALL registrations, attendance, and feedback.\nThe "Final Rating" will be SAVED and preserved.\n\nType "CONFIRM" to proceed.`);
+                                                const confirmation = prompt(`DANGER: PURGE DATA for "${event.title}"?\n\nThis will DELETE ALL registrations, attendance, and feedback.\nThe "Final Rating" will be SAVED and preserved.\n\nType "CONFIRM" to proceed.`);
                                                 if (confirmation === "CONFIRM") {
                                                     await purgeEventData(event.id);
                                                     alert("Data purged. Final Rating preserved.");
@@ -384,15 +366,12 @@ export default function FormsDashboard() {
                 </table>
             </div>
 
-            {selectedEventForFeedback && (
-                <FeedbackListModal
-                    eventId={selectedEventForFeedback.id}
-                    eventTitle={selectedEventForFeedback.title}
-                    onClose={() => setSelectedEventForFeedback(null)}
+            {activeModal && (
+                <DataViewerModal
+                    type={activeModal}
+                    onClose={() => setActiveModal(null)}
                 />
             )}
         </div>
     );
 }
-
-import FeedbackListModal from "@/components/admin/FeedbackListModal";

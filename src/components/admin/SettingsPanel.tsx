@@ -164,7 +164,7 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
                             onClick={async () => {
                                 if (confirm("Are you sure you want to delete logs older than 30 days? This cannot be undone.")) {
                                     try {
-                                        const { archiveOldLogs } = await import("@/services/audit");
+                                        const { archiveOldLogs } = await import("@/lib/api");
                                         const count = await archiveOldLogs(30);
                                         toast(`Archived ${count} old log entries.`, "success");
                                     } catch (e: any) {

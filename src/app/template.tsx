@@ -1,16 +1,5 @@
-"use client";
-
-import { motion } from "framer-motion";
-
+// Page-enter animation in plain CSS, so server-rendered pages are visible before JavaScript loads.
+// Turned off for users who prefer reduced motion (see globals.css).
 export default function Template({ children }: { children: React.ReactNode }) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ ease: "easeInOut", duration: 0.5 }}
-        >
-            {children}
-        </motion.div>
-    );
+    return <div className="animate-[slideUp_0.5s_ease-out]">{children}</div>;
 }

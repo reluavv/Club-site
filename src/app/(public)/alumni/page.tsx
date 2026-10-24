@@ -1,10 +1,10 @@
 import { GraduationCap, Linkedin, Briefcase, Building2 } from "lucide-react";
-import { getAlumni } from "@/services/alumni";
+import { getAlumni } from "@/lib/api";
 import { Alumni } from "@/types";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Alumni Network | ReLU",
+    title: "Alumni Network",
     description: "Connect with past members of the ReLU AI&ML Club.",
 };
 
@@ -27,7 +27,7 @@ export default async function AlumniPage() {
                     <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-full bg-purple-500/20 blur-[50px] rounded-full -z-10" />
                 </h1>
                 <p className="text-gray-400 text-lg mt-4 max-w-2xl mx-auto px-4">
-                    Celebrating the incredible people who shaped ReLU Club. Our alumni continue to inspire and lead in the world of AI & technology.
+                    Past members who helped build ReLU, and where they are now.
                 </p>
             </div>
 

@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import EventForm from "@/components/admin/EventForm";
 import { ArrowLeft } from "lucide-react";
 import { getEvent, Event } from "@/lib/api";
 
-export default function EditEventPage({ params }: { params: { id: string } }) {
+export default function EditEventPage() {
+    const params = useParams<{ id: string }>();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
 

@@ -20,7 +20,7 @@ export async function DELETE(request: Request) {
         const adminDb = getAdminFirestore();
         const callerDoc = await adminDb.collection('admins').doc(authResult.uid).get();
         if (!callerDoc.exists || callerDoc.data()?.role !== 'CTO') {
-            return NextResponse.json({ error: 'Forbidden — CTO role required' }, { status: 403 });
+            return NextResponse.json({ error: 'Forbidden: CTO role required' }, { status: 403 });
         }
 
         // 3. Get target UID from query params

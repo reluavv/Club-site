@@ -12,7 +12,6 @@ export default function Error({
     reset: () => void;
 }) {
     useEffect(() => {
-        // Log the error to an error reporting service
         console.error("Application Error:", error);
     }, [error]);
 
@@ -26,8 +25,7 @@ export default function Error({
                 <h2 className="text-3xl font-bold mb-4">Something went wrong!</h2>
 
                 <p className="text-gray-400 mb-8">
-                    We encountered an unexpected error. Our team has been notified.
-                    Please try refreshing the page or return home.
+                    Something went wrong while loading this page. Try again, or go back to the home page.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">

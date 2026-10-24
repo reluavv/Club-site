@@ -46,7 +46,7 @@ export default function DoomsdayPage() {
             return;
         }
 
-        if (!confirm("⚠️ FINAL WARNING: You are about to transfer your CTO role. You will immediately lose CTO privileges. This action cannot be undone.")) {
+        if (!confirm("FINAL WARNING: You are about to transfer your CTO role. You will immediately lose CTO privileges. This action cannot be undone.")) {
             return;
         }
 
@@ -54,7 +54,7 @@ export default function DoomsdayPage() {
         try {
             if (user?.uid) {
                 await transferCTORole(user.uid, email);
-                alert("Role transfer successful. It's been an honor, Chief. 🫡");
+                alert("Role transfer successful. You are no longer the CTO.");
                 await signOut();
                 router.push("/admin/login");
             }
@@ -72,7 +72,7 @@ export default function DoomsdayPage() {
             return;
         }
 
-        if (!confirm("⚠️ FINAL WARNING: This will delete ALL public user profiles from the database and their avatar files. User authentication accounts will REMAIN.")) {
+        if (!confirm("FINAL WARNING: This will delete ALL public user profiles from the database and their avatar files. User authentication accounts will REMAIN.")) {
             return;
         }
 

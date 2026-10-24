@@ -71,7 +71,6 @@ export function useAuth() {
                     }
                 } else {
                     // 2. Try Public User Profile
-                    // We need to dynamically import these to avoid circular deps if possible, or just rely on API
                     const { getUserProfile, checkUserTenure } = await import("./api");
                     const userProfile = await getUserProfile(currentUser.uid);
 
@@ -84,11 +83,7 @@ export function useAuth() {
                             setUser(null);
                             alert("Your account membership period (3 Years) has ended. Your data has been removed.");
                         } else {
-                            // Helper to map UserProfile to AdminProfile structure for type safety, 
-                            // though ideally we should split contexts. For now, we return null profile for public users 
-                            // because this context is typed as AdminProfile.
-                            // However, strictly speaking, useAuth is used by AdminGuard which expects AdminProfile.
-                            // Public pages might assume user is defined but profile is null.
+                            // `profile` only holds admin profiles; students keep it null.
                             setProfile(null);
                         }
                     } else {

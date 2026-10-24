@@ -1,13 +1,38 @@
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, limit, where, getDocs, writeBatch, Timestamp } from "firebase/firestore";
+import { addDoc, collection, query, orderBy, onSnapshot, limit, where, getDocs, writeBatch, Timestamp, getCountFromServer } from "firebase/firestore";
 import { AuditLog } from "@/types";
-import { logAuditAction } from "./common";
 
-// Re-export common audit functions
-export { logAuditAction, getAuditLogs } from "./common";
+export async function logActivity(actorUid: string, actorName: string, action: string, details: any = {}) {
+    try {
+        await addDoc(collection(db, "audit_logs"), {
+            action,
+            actorUid,
+            actorName,
+            details,
+            timestamp: Timestamp.now()
+        });
 
-// Alias for frontend usage
-export const logActivity = logAuditAction;
+        // Retention Policy: Keep only the latest 30 logs
+        // Use count query first to avoid fetching all documents on every write
+        const countSnap = await getCountFromServer(collection(db, "audit_logs"));
+        if (countSnap.data().count > 30) {
+            const q = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.size > 30) {
+                const batch = writeBatch(db);
+                const docsToDelete = snapshot.docs.slice(30);
+                docsToDelete.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            }
+        }
+
+    } catch (e) {
+        console.error("Failed to log audit action", e);
+    }
+}
 
 export function subscribeToActivity(callback: (logs: AuditLog[]) => void) {
     const q = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"), limit(50));
