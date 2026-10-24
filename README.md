@@ -8,7 +8,7 @@ Built with Next.js 16 (App Router), TypeScript, Tailwind CSS and Firebase (Auth,
 
 ## Running locally
 
-Requires Node.js 20.
+Requires Node.js 22 (firebase-admin needs it).
 
 ```bash
 npm install
