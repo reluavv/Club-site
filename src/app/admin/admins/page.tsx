@@ -295,7 +295,8 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div className="space-y-4">
-                    {admins.filter(u => u.status === "active").map(admin => (
+                    {/* Approved admins who haven't finished onboarding are listed too, so they can be managed or removed. */}
+                    {admins.filter(u => u.status === "active" || u.status === "onboarding").map(admin => (
                         <div key={admin.uid} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
@@ -303,6 +304,9 @@ export default function AdminUsersPage() {
                                     <span className={`text-xs px-2 py-0.5 rounded-full ${admin.role === 'CTO' ? 'bg-purple-500/20 text-purple-300' : 'bg-blue-500/20 text-blue-300'}`}>
                                         {admin.role}
                                     </span>
+                                    {admin.status === 'onboarding' && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">Onboarding</span>
+                                    )}
                                 </div>
                                 <div className="flex flex-col sm:flex-row sm:gap-4 text-xs text-gray-400">
                                     <span>UID: {admin.uid.slice(0, 8)}...</span>
@@ -344,7 +348,7 @@ export default function AdminUsersPage() {
                             </div>
                         </div>
                     ))}
-                    {admins.filter(u => u.status === "active").length === 0 && (
+                    {admins.filter(u => u.status === "active" || u.status === "onboarding").length === 0 && (
                         <p className="text-gray-500">No active admins found.</p>
                     )}
                 </div>
