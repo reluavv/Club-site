@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { subscribeToEvent, subscribeToEventGallery } from "@/lib/api";
 import { Event, GalleryImage } from "@/types";
-import { Calendar, Clock, MapPin, Play, Image as ImageIcon, ArrowLeft, Star } from "lucide-react";
+import { Calendar, Clock, MapPin, Play, Image as ImageIcon, ArrowLeft, Star, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -43,13 +43,26 @@ export default function EventDetailPage() {
         };
     }, [eventId]);
 
-    if (loading) return <div className="min-h-screen pt-32 text-center text-white">Loading Event...</div>;
-    if (!event) return <div className="min-h-screen pt-32 text-center text-white">Event not found.</div>;
+    if (loading) return (
+        <div className="min-h-screen pt-32 flex flex-col items-center justify-center gap-4">
+            <Loader2 size={40} className="animate-spin text-blue-500" />
+            <p className="text-gray-400 text-sm">Loading event…</p>
+        </div>
+    );
+    if (!event) return (
+        <div className="min-h-screen pt-32 flex flex-col items-center justify-center gap-4 text-center px-4">
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">Event not found</h1>
+            <p className="text-gray-400">This event may have been removed or the link is incorrect.</p>
+            <Link href="/events" className="mt-2 px-6 py-2.5 rounded-full bg-white/10 border border-white/10 hover:bg-white/20 text-white text-sm font-bold transition-colors">
+                Browse all events
+            </Link>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 bg-black">
+        <div className="min-h-screen pt-32 md:pt-36 pb-12 px-4">
             <div className="max-w-6xl mx-auto">
-                <Link href="/events" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors">
+                <Link href="/events" className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium">
                     <ArrowLeft size={18} /> Back to Events
                 </Link>
 

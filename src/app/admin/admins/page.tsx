@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllAdmins, deleteAdmin, AdminProfile, PendingRegistration, getPendingRegistrations, approveRegistration, rejectRegistration, subscribeToAllAdmins, subscribeToPendingRegistrations, logActivity, updateAdminRole, createAdminDirectly } from "@/lib/api";
+import { getAllAdmins, deleteAdmin, AdminProfile, PendingRegistration, getPendingRegistrations, approveRegistration, rejectRegistration, subscribeToAllAdmins, subscribeToPendingRegistrations, logActivity, updateAdminRole, createAdminDirectly, replaceRoleHolder, subscribeToRoles, seedDefaultRoles } from "@/lib/api";
+import { ClubRole, CTO_ROLE, DEFAULT_ROLE_ID, roleLabel, withBuiltIns } from "@/lib/roles";
+import RolesManager from "@/components/admin/RolesManager";
 import { useAuth } from "@/lib/auth";
 import { getAuthHeaders } from "@/lib/authHeaders";
-import { Check, X, Shield, Trash2, User } from "lucide-react";
+import { Check, X, Shield, Trash2, User, Users } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import PageHeader from "@/components/ui/PageHeader";
 import { PasswordStrengthIndicator } from "@/components/ui/PasswordStrengthIndicator";
 
 export default function AdminUsersPage() {
@@ -15,6 +18,9 @@ export default function AdminUsersPage() {
     const [pendingRegs, setPendingRegs] = useState<PendingRegistration[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingAdmin, setEditingAdmin] = useState<AdminProfile | null>(null);
+    const [roles, setRoles] = useState<ClubRole[]>(withBuiltIns([]));
+    // Set when a role change needs someone moved out of a full role first.
+    const [replacing, setReplacing] = useState<{ target: AdminProfile; role: ClubRole; holders: AdminProfile[]; replacedUid: string } | null>(null);
 
     // New State for Create Modal
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -36,7 +42,26 @@ export default function AdminUsersPage() {
         }
     };
 
-    const ROLES = ["President", "VP_AIML", "VP_DSA", "AdminHead", "PRHead", "Treasurer", "Mentor", "Faculty", "Activator"];
+    // The CTO role is handed over from the Doomsday console, never assigned here.
+    const assignableRoles = roles.filter(r => r.id !== CTO_ROLE.id);
+    const nameOf = (a: AdminProfile) => a.displayName || a.email;
+    const holdersOf = (roleId: string) => admins.filter(a => a.role === roleId && a.status === "active");
+
+    // Document-level Escape handling so the dialogs close even when the folder
+    // click left focus somewhere else; matching the app's other dialogs.
+    useEffect(() => {
+        if (!showCreateModal) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowCreateModal(false); };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [showCreateModal]);
+
+    useEffect(() => {
+        if (!replacing) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setReplacing(null); };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [replacing]);
 
     useEffect(() => {
         setLoading(true);
@@ -51,11 +76,19 @@ export default function AdminUsersPage() {
             setPendingRegs(data);
         });
 
+        const unsubscribeRoles = subscribeToRoles(setRoles);
+
         return () => {
             unsubscribeAdmins();
             unsubscribePending();
+            unsubscribeRoles();
         };
     }, []);
+
+    // The CTO's first visit stores the default roles so they can be edited.
+    useEffect(() => {
+        if (profile?.role === "CTO") seedDefaultRoles().catch(err => console.error("Could not store default roles:", err));
+    }, [profile?.role]);
 
 
     // Returns false when the mail was not sent, so the CTO can notify the person another way.
@@ -76,7 +109,6 @@ export default function AdminUsersPage() {
 
     const handleApprove = async (reg: PendingRegistration) => {
         if (!confirm(`Approve ${reg.email}? They will be emailed a login link.`)) return;
-        setLoading(true);
         try {
             await approveRegistration(reg.id, profile?.uid, profile?.displayName || "Admin");
             const sent = await sendNotification(
@@ -94,7 +126,6 @@ export default function AdminUsersPage() {
 
     const handleReject = async (reg: PendingRegistration) => {
         if (!confirm(`Reject ${reg.email}? They will be emailed about the decision.`)) return;
-        setLoading(true);
         try {
             await rejectRegistration(reg.id, profile?.uid, profile?.displayName || "Admin");
             const sent = await sendNotification(
@@ -115,23 +146,46 @@ export default function AdminUsersPage() {
         const targetAdmin = admins.find(a => a.uid === uid);
         const targetEmail = targetAdmin?.email || uid;
 
-        setLoading(true);
-        await deleteAdmin(uid);
-
-        const adminName = profile?.displayName || "CTO";
-        await logActivity(profile?.uid!, adminName, `Revoked access for admin: ${targetEmail}`);
+        try {
+            await deleteAdmin(uid);
+            const adminName = profile?.displayName || "CTO";
+            await logActivity(profile?.uid!, adminName, `Revoked access for admin: ${targetEmail}`);
+            toast.success("Access revoked.");
+        } catch (e: any) {
+            console.error(e);
+            toast.error("Failed to revoke access: " + (e?.message || "unknown error"));
+        }
     };
 
-    const handleRoleChange = async (targetUid: string, newRole: string) => {
-        if (!confirm(`Change role to ${newRole}? Constraints will be checked.`)) return;
+    const handleRoleChange = async (target: AdminProfile, newRoleId: string) => {
+        const role = roles.find(r => r.id === newRoleId);
+        if (!role) return;
+        const holders = holdersOf(role.id).filter(a => a.uid !== target.uid);
+        if (role.limit !== null && holders.length >= role.limit) {
+            setReplacing({ target, role, holders, replacedUid: holders[0].uid });
+            return;
+        }
+        if (!confirm(`Change ${nameOf(target)}'s role to ${role.label}?`)) return;
         try {
-            // Needed to import updateAdminRole
-            await updateAdminRole(targetUid, newRole, profile?.uid, profile?.displayName || "Admin");
+            await updateAdminRole(target.uid, role.id, profile?.uid, profile?.displayName || "Admin");
             toast.success("Role updated successfully!");
             setEditingAdmin(null);
         } catch (e: any) {
             console.error(e);
             toast.error("Failed: " + e.message);
+        }
+    };
+
+    const confirmReplace = async () => {
+        if (!replacing) return;
+        try {
+            await replaceRoleHolder(replacing.target.uid, replacing.replacedUid, replacing.role.id, profile?.uid, profile?.displayName || "Admin");
+            toast.success(`${nameOf(replacing.target)} is now ${replacing.role.label}.`);
+        } catch (e: any) {
+            console.error(e);
+            toast.error("Failed: " + e.message);
+        } finally {
+            setReplacing(null);
         }
     };
 
@@ -160,38 +214,47 @@ export default function AdminUsersPage() {
 
     return (
         <div className="max-w-4xl mx-auto text-white">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">Manage Team Access</h1>
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
-                >
-                    <User size={18} /> Create New Admin
-                </button>
-            </div>
+            <PageHeader
+                title="Manage Team Access"
+                subtitle="Approve requests, manage roles and revoke access."
+                icon={<Users size={26} />}
+                actions={
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
+                    >
+                        <User size={18} /> Create New Admin
+                    </button>
+                }
+            />
 
             {/* CREATE MODAL */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="create-admin-title" onKeyDown={e => { if (e.key === "Escape") setShowCreateModal(false); }}>
                     <div className="bg-[#111] border border-white/10 rounded-xl p-6 w-full max-w-md shadow-2xl">
-                        <h2 className="text-xl font-bold mb-4 text-white">Create New Admin</h2>
+                        <h2 id="create-admin-title" className="text-xl font-bold mb-4 text-white">Create New Admin</h2>
 
                         <form onSubmit={handleCreateAdmin} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">Email</label>
+                                <label htmlFor="create-email" className="block text-sm font-bold text-gray-400 mb-1">Email</label>
                                 <input
+                                    id="create-email"
                                     type="email"
                                     required
+                                    autoComplete="off"
+                                    autoFocus
                                     className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
                                     value={createForm.email}
                                     onChange={e => setCreateForm({ ...createForm, email: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">Password</label>
+                                <label htmlFor="create-password" className="block text-sm font-bold text-gray-400 mb-1">Password</label>
                                 <input
+                                    id="create-password"
                                     type="password"
                                     required
+                                    autoComplete="new-password"
                                     className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
                                     value={createForm.password}
                                     onChange={e => setCreateForm({ ...createForm, password: e.target.value })}
@@ -200,14 +263,15 @@ export default function AdminUsersPage() {
                                 <PasswordStrengthIndicator password={createForm.password} />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-400 mb-1">Role</label>
+                                <label htmlFor="create-role" className="block text-sm font-bold text-gray-400 mb-1">Role</label>
                                 <select
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none appearance-none"
+                                    id="create-role"
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none appearance-none cursor-pointer"
                                     value={createForm.role}
                                     onChange={e => setCreateForm({ ...createForm, role: e.target.value })}
                                 >
-                                    {ROLES.filter(r => r !== "CTO").map(r => ( // CTO shouldn't create another CTO easily
-                                        <option key={r} value={r}>{r}</option>
+                                    {assignableRoles.map(r => (
+                                        <option key={r.id} value={r.id}>{r.label}</option>
                                     ))}
                                 </select>
                             </div>
@@ -302,7 +366,7 @@ export default function AdminUsersPage() {
                                 <div className="flex items-center gap-2 mb-1">
                                     <p className="font-bold">{admin.email}</p>
                                     <span className={`text-xs px-2 py-0.5 rounded-full ${admin.role === 'CTO' ? 'bg-purple-500/20 text-purple-300' : 'bg-blue-500/20 text-blue-300'}`}>
-                                        {admin.role}
+                                        {roleLabel(roles, admin.role)}
                                     </span>
                                     {admin.status === 'onboarding' && (
                                         <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">Onboarding</span>
@@ -325,10 +389,10 @@ export default function AdminUsersPage() {
                                         <select
                                             className="bg-black/50 border border-white/20 rounded-lg px-2 py-1 text-sm focus:border-blue-500 outline-none appearance-none cursor-pointer pr-8"
                                             value={admin.role}
-                                            onChange={(e) => handleRoleChange(admin.uid, e.target.value)}
+                                            onChange={(e) => handleRoleChange(admin, e.target.value)}
                                         >
-                                            {ROLES.map(r => (
-                                                <option key={r} value={r}>{r}</option>
+                                            {assignableRoles.map(r => (
+                                                <option key={r.id} value={r.id}>{r.label}</option>
                                             ))}
                                         </select>
                                         <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
@@ -353,6 +417,47 @@ export default function AdminUsersPage() {
                     )}
                 </div>
             </div>
+
+            <RolesManager
+                roles={roles}
+                holderCount={id => holdersOf(id).length}
+                actorUid={profile?.uid}
+                actorName={profile?.displayName || "Admin"}
+            />
+
+            {/* REPLACE DIALOG */}
+            {replacing && (() => {
+                const current = replacing.holders.find(h => h.uid === replacing.replacedUid)!;
+                return (
+                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="replace-title">
+                        <div className="bg-[#111] border border-white/10 rounded-xl p-6 w-full max-w-md shadow-2xl">
+                            <h2 id="replace-title" className="text-xl font-bold mb-4">Replace {replacing.role.label}?</h2>
+                            {replacing.holders.length > 1 && (
+                                <label className="block mb-4 text-sm text-gray-400">
+                                    All {replacing.role.limit} {replacing.role.label} seats are taken. Who should step down?
+                                    <select
+                                        className="mt-2 w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-blue-500 outline-none"
+                                        value={replacing.replacedUid}
+                                        onChange={e => setReplacing({ ...replacing, replacedUid: e.target.value })}
+                                    >
+                                        {replacing.holders.map(h => <option key={h.uid} value={h.uid}>{nameOf(h)}</option>)}
+                                    </select>
+                                </label>
+                            )}
+                            <p className="text-gray-300">
+                                Do you want to replace the current {replacing.role.label}, <strong>{nameOf(current)}</strong>, with <strong>{nameOf(replacing.target)}</strong>?
+                            </p>
+                            <p className="text-xs text-gray-500 mt-2">
+                                {nameOf(current)} will become {roleLabel(roles, DEFAULT_ROLE_ID)}. You can change that afterwards.
+                            </p>
+                            <div className="flex gap-3 justify-end mt-6">
+                                <button onClick={() => setReplacing(null)} className="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+                                <button onClick={confirmReplace} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold">Replace</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

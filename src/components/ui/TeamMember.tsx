@@ -21,17 +21,17 @@ interface TeamMemberProps {
 
 export default function TeamMember({ member }: TeamMemberProps) {
     return (
-        <div className="team-member bg-black/60 rounded-[20px] p-[clamp(15px,3vw,30px)] text-center backdrop-blur-[10px] border border-white/10 transition-all duration-400 group relative overflow-hidden hover:-translate-y-[15px] hover:scale-102 hover:border-[#0099FF30] hover:shadow-[0_20px_40px_rgba(0,153,255,0.2)] h-full flex flex-col items-center">
+        <div className="team-member bg-black/60 rounded-[20px] p-[clamp(15px,3vw,30px)] text-center backdrop-blur-[10px] border border-white/10 transition-colors duration-300 group relative overflow-hidden hover:border-[#0099FF40] h-full flex flex-col items-center">
             {/* Hover Background Effect */}
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-transparent via-[rgba(0,153,255,0.1)] to-transparent -translate-y-full transition-transform duration-600 ease-in-out group-hover:translate-y-full" />
 
-            <div className="member-image relative w-[clamp(120px,25vw,180px)] h-[clamp(120px,25vw,180px)] rounded-full mx-auto mb-[25px] overflow-hidden border-[4px] border-[#0099FF] shadow-[0_0_30px_rgba(0,153,255,0.3)] transition-all duration-400 group-hover:scale-110 group-hover:shadow-[0_0_50px_rgba(0,153,255,0.5)] flex-shrink-0">
+            <div className="member-image relative w-[clamp(120px,25vw,180px)] h-[clamp(120px,25vw,180px)] rounded-full mx-auto mb-[25px] overflow-hidden border-[4px] border-[#0099FF] shadow-[0_0_30px_rgba(0,153,255,0.3)] transition-shadow duration-400 group-hover:shadow-[0_0_50px_rgba(0,153,255,0.5)] flex-shrink-0">
                 {/* We use a standard img or Next.js Image. Since dynamic path, assume valid. */}
                 <Image
                     src={member.image || "/images/placeholder-user.jpg"}
                     alt={member.name}
                     fill
-                    className="object-cover transition-transform duration-400 group-hover:scale-110"
+                    className="object-cover"
                     sizes="(max-width: 768px) 150px, 180px"
                 />
             </div>
@@ -46,22 +46,22 @@ export default function TeamMember({ member }: TeamMemberProps) {
 
             <div className="member-social flex justify-center gap-[clamp(10px,2vw,20px)] mt-auto pt-[20px] border-t border-white/10 w-full">
                 {member.links.linkedin && (
-                    <a href={member.links.linkedin} target="_blank" className="social-link" aria-label="LinkedIn">
+                    <a href={member.links.linkedin} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="LinkedIn">
                         <Linkedin size={18} />
                     </a>
                 )}
                 {member.links.github && (
-                    <a href={member.links.github} target="_blank" className="social-link" aria-label="GitHub">
+                    <a href={member.links.github} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="GitHub">
                         <Github size={18} />
                     </a>
                 )}
                 {member.links.instagram && (
-                    <a href={member.links.instagram} target="_blank" className="social-link" aria-label="Instagram">
+                    <a href={member.links.instagram} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="Instagram">
                         <Instagram size={18} />
                     </a>
                 )}
                 {member.links.mail && (
-                    <a href={member.links.mail} target="_blank" className="social-link" aria-label="Email">
+                    <a href={member.links.mail} target="_blank" rel="noopener noreferrer" className="social-link" aria-label="Email">
                         <Mail size={18} />
                     </a>
                 )}

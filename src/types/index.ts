@@ -20,11 +20,13 @@ export interface Event {
     maxTeamSize?: number; // Default 1
 }
 
+export type ResourceCategory = "AIML" | "DSA" | "General";
+
 export interface Resource {
     id: string;
     title: string;
     description: string;
-    category: "AIML" | "DSA";
+    category: ResourceCategory;
     type: "image" | "pdf" | "url";
     url: string; // The content URL (File or Link)
     thumbnailUrl?: string; // Required for 'url' type, optional for others
@@ -39,12 +41,15 @@ export interface GalleryImage {
     type?: 'image' | 'video'; // optional for backward compatibility, default 'image'
     category?: string;
     timestamp: any;
+    storageKey?: string; // R2 object key (gallery/<eventId>/...); absent for legacy Firebase Storage items
+    storedSize?: number; // bytes stored in R2 after lossless optimization
+    storedLosslessly?: boolean; // true when a lossless WebP re-encode shrank the original
 }
 
 export interface AdminProfile {
     uid: string;
     email: string;
-    role: "pending" | "President" | "VP_AIML" | "VP_DSA" | "CTO" | "AdminHead" | "PRHead" | "Treasurer" | "Mentor" | "Faculty" | "Activator" | "admin";
+    role: string; // "pending" until approved; otherwise a club_roles id or "CTO"
     status: "onboarding" | "active";
     createdAt: any;
     approvedAt?: any;

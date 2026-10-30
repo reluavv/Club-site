@@ -1,64 +1,34 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AdminProfile, subscribeToAllAdmins } from "@/lib/api";
-import { Shield, Briefcase, GraduationCap, Coins, Terminal, Zap, Crown, Linkedin, Github, Instagram, Mail, X, Calendar, User } from "lucide-react";
+import { AdminProfile, subscribeToAllAdmins, subscribeToRoles } from "@/lib/api";
+import { ClubRole, roleLabel, roleRank, withBuiltIns } from "@/lib/roles";
+import { Shield, Briefcase, GraduationCap, Coins, Terminal, Zap, Crown, Linkedin, Github, Instagram, Mail, X, Calendar, User, Users } from "lucide-react";
 import Image from "next/image";
-
-const ROLE_HIERARCHY: Record<string, number> = {
-    "President": 1,
-    "VP_AIML": 2,
-    "VP_DSA": 2,
-    "AdminHead": 3,
-    "PRHead": 3,
-    "Treasurer": 4,
-    "Mentor": 5,
-    "Faculty": 6,
-    "CTO": 7,
-    "Activator": 99,
-    "admin": 999,
-    "pending": 9999
-};
-
-const ROLE_LABELS: Record<string, string> = {
-    "President": "President",
-    "VP_AIML": "Vice President (AIML)",
-    "VP_DSA": "Vice President (DSA)",
-    "AdminHead": "Administrative Head",
-    "PRHead": "PR Head",
-    "Treasurer": "Treasurer",
-    "CTO": "Chief Technology Officer",
-    "Activator": "Activator",
-    "Faculty": "Faculty Coordinator",
-    "Mentor": "Mentor",
-};
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function TeamPage() {
-    const [members, setMembers] = useState<AdminProfile[]>([]);
+    const [admins, setAdmins] = useState<AdminProfile[]>([]);
+    const [roles, setRoles] = useState<ClubRole[]>(withBuiltIns([]));
     const [loading, setLoading] = useState(true);
     const [selectedMember, setSelectedMember] = useState<AdminProfile | null>(null);
 
     useEffect(() => {
-        const unsubscribe = subscribeToAllAdmins((admins) => {
-            const teamMembers = admins.filter(u =>
-                u.status === "active" &&
-                u.role !== "pending" &&
-                u.role !== "admin"
-            );
-
-            // Sort by hierarchy
-            teamMembers.sort((a, b) => {
-                const rankA = ROLE_HIERARCHY[a.role] || 999;
-                const rankB = ROLE_HIERARCHY[b.role] || 999;
-                return rankA - rankB;
-            });
-
-            setMembers(teamMembers);
+        const unsubscribeAdmins = subscribeToAllAdmins((data) => {
+            setAdmins(data);
             setLoading(false);
         });
+        const unsubscribeRoles = subscribeToRoles(setRoles);
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeAdmins();
+            unsubscribeRoles();
+        };
     }, []);
+
+    const members = admins
+        .filter(u => u.status === "active" && u.role !== "pending" && u.role !== "admin")
+        .sort((a, b) => roleRank(roles, a.role) - roleRank(roles, b.role));
 
     const getRoleIcon = (role: string) => {
         switch (role) {
@@ -75,7 +45,11 @@ export default function TeamPage() {
 
     return (
         <div className="min-h-screen pb-12">
-            <h1 className="text-3xl font-bold mb-8">Club Team</h1>
+            <PageHeader
+                title="Club Team"
+                subtitle={`${members.length} active members • click a card to flip for contact info`}
+                icon={<Users size={26} />}
+            />
 
             {loading ? (
                 <div className="flex justify-center p-12">
@@ -107,7 +81,7 @@ export default function TeamPage() {
 
                                     <h3 className="text-xl font-bold text-white text-center truncate w-full mb-2">{member.displayName}</h3>
                                     <p className="text-blue-400 text-xs text-center uppercase tracking-widest font-mono">
-                                        {ROLE_LABELS[member.role] || member.role}
+                                        {roleLabel(roles, member.role)}
                                     </p>
                                 </div>
 
@@ -186,7 +160,7 @@ export default function TeamPage() {
                                 </div>
                                 <h2 className="text-2xl font-bold text-white mb-1">{selectedMember.displayName}</h2>
                                 <span className="text-blue-400 text-sm font-mono uppercase tracking-wider bg-blue-500/10 px-3 py-1 rounded-full">
-                                    {selectedMember.role}
+                                    {roleLabel(roles, selectedMember.role)}
                                 </span>
                             </div>
 

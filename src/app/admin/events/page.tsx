@@ -4,7 +4,8 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getEvents, Event, createEvent, deleteEvent, subscribeToEvents, logActivity } from "@/lib/api";
-import { Plus, Edit2, Trash2, Copy, RefreshCw, Users } from "lucide-react";
+import { Plus, Edit2, Trash2, Copy, RefreshCw, Users, Calendar } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/components/ui/Toast";
@@ -55,26 +56,36 @@ export default function EventsAdmin() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">Manage Events</h1>
-                <div className="flex gap-2">
-                    <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full text-green-400 text-xs font-mono animate-pulse border border-green-500/20">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        LIVE
-                    </div>
-                    <Link
-                        href="/admin/events/new"
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                    >
-                        <Plus size={18} />
-                        <span>Add Event</span>
-                    </Link>
-                </div>
-            </div>
+            <PageHeader
+                title="Manage Events"
+                subtitle="Create, publish and monitor club events."
+                icon={<Calendar size={26} />}
+                actions={
+                    <>
+                        <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full text-green-400 text-xs font-mono animate-pulse border border-green-500/20">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                            LIVE
+                        </div>
+                        <Link
+                            href="/admin/events/new"
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                            <Plus size={18} />
+                            <span>Add Event</span>
+                        </Link>
+                    </>
+                }
+            />
 
             {loading ? (
                 <p className="text-gray-500">Loading events...</p>
             ) : (
+                <>
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                    <StatChip label="Upcoming" value={events.filter(e => e.status === 'upcoming').length} tone="blue" />
+                    <StatChip label="Ongoing" value={events.filter(e => e.status === 'ongoing').length} tone="green" />
+                    <StatChip label="Past" value={events.filter(e => e.status === 'past').length} tone="gray" />
+                </div>
                 <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden backdrop-blur-sm">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -133,7 +144,22 @@ export default function EventsAdmin() {
                         </tbody>
                     </table>
                 </div>
+                </>
             )}
+        </div>
+    );
+}
+
+function StatChip({ label, value, tone }: { label: string; value: number; tone: "blue" | "green" | "gray" }) {
+    const tones = {
+        blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        green: "bg-green-500/10 text-green-400 border-green-500/20",
+        gray: "bg-white/5 text-gray-400 border-white/10",
+    };
+    return (
+        <div className={`px-4 py-3 rounded-xl border ${tones[tone]}`}>
+            <p className="text-2xl font-bold leading-none">{value}</p>
+            <p className="text-xs uppercase tracking-wider mt-1.5 opacity-80">{label}</p>
         </div>
     );
 }

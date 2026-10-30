@@ -89,12 +89,14 @@ export default function Sidebar() {
 
 function NavLink({ href, icon, label, className }: { href: string; icon: React.ReactNode; label: string; className?: string }) {
     const pathname = usePathname();
-    const isActive = pathname === href;
+    // Stay highlighted on nested routes (e.g. Events while creating /admin/events/new or opening a detail page).
+    const isActive = pathname === href || pathname.startsWith(href + "/");
 
     return (
         <Link
             href={href}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${className || (isActive ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-white/5 hover:text-white")}`}
+            aria-current={isActive ? "page" : undefined}
         >
             {icon}
             <span>{label}</span>

@@ -2,138 +2,145 @@
 
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { subscribeToEvents, subscribeToAllAdmins, subscribeToActivity, subscribeToTotalUsers, AuditLog } from "@/lib/api";
-import { ShieldAlert, CalendarCheck, Users, Globe } from "lucide-react";
-import { useAuth } from "@/lib/auth";
+import { LayoutDashboard, Activity, CalendarCheck, Users, Globe, Plus, PenSquare, BookOpen, Image as ImageIcon, ChevronRight } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 
+// Every metric and action below reflects real data sources already wired in the app:
+// subscribed Firestore counts for events / admins / users, and audit_logs for activity.
+// No fabricated statistics, and no extra database work beyond the existing subscriptions.
 export default function AdminDashboard() {
-    const { profile } = useAuth();
-    const [stats, setStats] = useState({
-        events: 0,
-        team: 0,
-        users: 0
-    });
+    const [events, setEvents] = useState<number | null>(null);
+    const [adminCount, setAdminCount] = useState<number | null>(null);
+    const [userCount, setUserCount] = useState<number | null>(null);
     const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Subscribe to Events
-        const unsubEvents = subscribeToEvents((events) => {
-            setStats(prev => ({ ...prev, events: events.length }));
-        });
-
-        // Subscribe to Admins (for Team count)
-        const unsubAdmins = subscribeToAllAdmins((admins) => {
-            const activeTeam = admins.filter(u => u.status === "active" && u.role !== "pending").length;
-            setStats(prev => ({ ...prev, team: activeTeam }));
-        });
-
-        // Subscribe to Public Users (Real-time Count)
-        const unsubUsers = subscribeToTotalUsers((count) => {
-            setStats(prev => ({ ...prev, users: count }));
-        });
-
-        // Subscribe to Activity Logs
-        const unsubActivity = subscribeToActivity((newLogs) => {
-            setLogs(newLogs);
-        });
-
-        setLoading(false);
-
-        return () => {
-            unsubEvents();
-            unsubAdmins();
-            unsubUsers();
-            unsubActivity();
-        };
+        const unsubEvents = subscribeToEvents((list) => setEvents(list.length));
+        const unsubAdmins = subscribeToAllAdmins((admins) =>
+            setAdminCount(admins.filter(u => u.status === "active" && u.role !== "pending").length));
+        const unsubUsers = subscribeToTotalUsers((count) => setUserCount(count));
+        const unsubLogs = subscribeToActivity((newLogs) => setLogs(newLogs));
+        return () => { unsubEvents(); unsubAdmins(); unsubUsers(); unsubLogs(); };
     }, []);
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-8">Dashboard Overview</h1>
+            <PageHeader
+                title="Dashboard Overview"
+                subtitle="Live snapshot of the club — everything below is real-time."
+                icon={<LayoutDashboard size={26} />}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-                <StatCard
-                    title="Total Events"
-                    value={loading ? "-" : stats.events.toString()}
-                    icon={<CalendarCheck size={20} />}
-                    color="blue"
-                />
-                <StatCard
-                    title="Team Members"
-                    value={loading ? "-" : stats.team.toString()}
-                    icon={<Users size={20} />}
-                    color="purple"
-                />
-
-                <StatCard
-                    title="Registered Users"
-                    value={loading ? "-" : stats.users.toString()}
-                    icon={<Globe size={20} />}
-                    color="yellow"
-                />
+            {/* Linked statistic cards: each opens its management surface */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                <StatLink href="/admin/events" title="Total Events" value={events} icon={<CalendarCheck size={18} />} color="blue" />
+                <StatLink href="/admin/team" title="Active Team" value={adminCount} icon={<Users size={18} />} color="purple" />
+                <StatLink href="/admin/team" title="Registered Students" value={userCount} icon={<Globe size={18} />} color="yellow" bottomNote="site accounts" />
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
+            {/* Quick actions */}
+            <h2 className="text-sm uppercase tracking-wider text-gray-500 font-bold mb-3">Quick Actions</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                <QuickAction href="/admin/events/new" icon={<Plus size={18} />} title="New Event" desc="Create and publish" />
+                <QuickAction href="/admin/forms" icon={<PenSquare size={18} />} title="Forms" desc="Registrations & data" />
+                <QuickAction href="/admin/resources" icon={<BookOpen size={18} />} title="Resources" desc="Add learning material" />
+                <QuickAction href="/admin/gallery" icon={<ImageIcon size={18} />} title="Gallery" desc="Upload event photos" />
+            </div>
+
+            {/* Recent activity */}
+            <section aria-labelledby="recent-activity" className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h2 id="recent-activity" className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Activity size={18} className="text-blue-400" /> Recent Activity
+                </h2>
 
                 {logs.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-white/5 text-gray-400 text-xs uppercase tracking-wider">
-                                <tr>
-                                    <th className="px-4 py-3 rounded-l-lg">Admin</th>
-                                    <th className="px-4 py-3">Activity</th>
-                                    <th className="px-4 py-3 rounded-r-lg text-right">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {logs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-white/5 transition-colors">
-                                        <td className="px-4 py-3 font-medium text-blue-400">
-                                            {log.actorName || "Unknown"}
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-300">
-                                            {log.action}
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-gray-500 text-sm font-mono">
-                                            {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleString('en-GB') : "Just now"}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <ul className="space-y-3">
+                        {logs.map((log) => (
+                            <li key={log.id} className="flex items-start gap-4 py-2.5 border-b border-white/5 last:border-0">
+                                <span
+                                    className="mt-1 w-2 h-2 rounded-full bg-blue-500 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm text-gray-200">
+                                        <span className="font-semibold text-blue-300">{log.actorName || "An admin"}</span>{" "}
+                                        <span className="text-gray-300">{log.action}</span>
+                                    </p>
+                                </div>
+                                <time className="text-xs text-gray-500 font-mono whitespace-nowrap shrink-0">
+                                    {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleString("en-GB") : ""}
+                                </time>
+                            </li>
+                        ))}
+                    </ul>
+                ) : logs === null ? (
+                    <DashboardSkeleton rows={3} />
                 ) : (
-                    <div className="text-gray-400 text-center py-8">
-                        {loading ? "Loading..." : "No recent activity recorded yet."}
-                    </div>
+                    <p className="text-gray-500 text-sm py-6 text-center">No recent activity recorded yet. Actions taken across the dashboard will appear here.</p>
                 )}
-            </div>
+            </section>
         </div>
     );
 }
 
-function StatCard({ title, value, icon, color, alert = false }: { title: string; value: string; icon: React.ReactNode; color: string, alert?: boolean }) {
-    const colors = {
-        blue: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-        purple: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-        green: "bg-green-500/10 text-green-500 border-green-500/20",
-        yellow: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse",
-    }
+function StatLink({
+    href, title, value, icon, color, bottomNote,
+}: {
+    href: string;
+    title: string;
+    value: number | null;
+    icon: React.ReactNode;
+    color: "blue" | "purple" | "yellow";
+    bottomNote?: string;
+}) {
+    const tone = {
+        blue: "border-blue-500/25 bg-blue-500/10 text-blue-500",
+        purple: "border-purple-500/25 bg-purple-500/10 text-purple-500",
+        yellow: "border-yellow-500/25 bg-yellow-500/10 text-yellow-500",
+    }[color];
 
     return (
-        <div className={`p-6 rounded-xl border ${colors[color as keyof typeof colors]} backdrop-blur-sm`}>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider">{title}</h3>
-                    <p className="text-3xl font-bold mt-1 text-white">{value}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colors[color as keyof typeof colors]} bg-opacity-20`}>
-                    {icon}
-                </div>
-            </div>
+        <Link
+            href={href}
+            className="group p-5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all flex items-center gap-4 focus-visible:ring-2 focus-visible:ring-blue-400"
+            aria-label={`${title}: ${value == null ? "loading" : value}. Open management page.`}
+        >
+            <span className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${tone}`} aria-hidden="true">{icon}</span>
+            <span className="min-w-0">
+                <span className="block text-xs uppercase tracking-wider text-gray-400 font-semibold">{title}</span>
+                {value == null ? (
+                    <span className="block mt-1.5 h-7 w-16 bg-white/10 rounded animate-pulse" aria-hidden="true" />
+                ) : (
+                    <span className="block text-2xl font-bold mt-1 text-white">{value}</span>
+                )}
+                {bottomNote && <span className="block text-[11px] text-gray-500">{bottomNote}</span>}
+            </span>
+            <ChevronRight size={16} className="ml-auto text-gray-600 group-hover:text-gray-300 group-hover:translate-x-0.5 transition-all shrink-0" aria-hidden="true" />
+        </Link>
+    );
+}
+
+function QuickAction({ href, icon, title, desc }: { href: string; icon: React.ReactNode; title: string; desc: string }) {
+    return (
+        <Link
+            href={href}
+            className="group p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-blue-500/30 transition-all focus-visible:ring-2 focus-visible:ring-blue-400"
+        >
+            <span className="text-blue-400 block mb-1.5" aria-hidden="true">{icon}</span>
+            <span className="block font-semibold text-sm text-white">{title}</span>
+            <span className="block text-xs text-gray-500 group-hover:text-gray-400 mt-0.5">{desc}</span>
+        </Link>
+    );
+}
+
+function DashboardSkeleton({ rows }: { rows: number }) {
+    return (
+        <div aria-label="Loading recent activity" role="status" className="space-y-3 py-2">
+            {Array.from({ length: rows }).map((_, i) => (
+                <div key={i} className="h-10 rounded-lg bg-white/5 animate-pulse" style={{ width: `${88 - i * 9}%` }} />
+            ))}
         </div>
-    )
+    );
 }

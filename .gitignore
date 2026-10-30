@@ -24,6 +24,14 @@ pnpm-debug.log*
 
 # local env files
 .env*.local
+<<<<<<< HEAD
+.env.local*
+.env.local1
+
+# emulator debug logs
+firestore-debug.log
+=======
+>>>>>>> parent of f1174c0 (Full admin UI finalization: email normalization with race-safe duplicate guard, lazy image loading, lossless B2 gallery migration)
 
 # vercel
 .vercel
@@ -32,3 +40,9 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
+
+# Freebuff Sites build artifacts
+freebuff-sites-build/
+
+# build logs
+build.log

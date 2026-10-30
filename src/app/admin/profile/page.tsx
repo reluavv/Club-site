@@ -6,7 +6,8 @@ import { useAuth, signOut } from "@/lib/auth";
 import { updateAdminProfileData, uploadImage, logActivity, deleteFileByUrl } from "@/lib/api";
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { LogOut, Save, Camera, User, Clock, ShieldCheck, Lock, Github, Linkedin, Instagram, Calendar, FileText } from "lucide-react";
+import { LogOut, Save, Camera, User, Clock, ShieldCheck, Lock, Github, Linkedin, Instagram, Calendar, FileText, UserCircle } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 import { auth } from "@/lib/firebase"; // Direct auth import needed for re-auth if not fully exposed in lib/auth
 import Image from "next/image";
 
@@ -157,7 +158,11 @@ export default function AdminProfilePage() {
 
     return (
         <div className="max-w-6xl mx-auto text-white p-4">
-            <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+            <PageHeader
+                title="My Profile"
+                subtitle="Your personal details, socials and account security."
+                icon={<UserCircle size={26} />}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Tenure & Info */}

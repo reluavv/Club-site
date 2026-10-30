@@ -62,8 +62,9 @@ export default function OnboardingPage() {
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-bold text-gray-400 mb-2">Full Name</label>
+                            <label htmlFor="onboarding-name" className="block text-sm font-bold text-gray-400 mb-2">Full Name</label>
                             <input
+                                id="onboarding-name"
                                 required
                                 type="text"
                                 className="w-full bg-black/40 border border-white/10 rounded-lg p-3"
@@ -72,8 +73,9 @@ export default function OnboardingPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-400 mb-2">Roll Number</label>
+                            <label htmlFor="onboarding-rollno" className="block text-sm font-bold text-gray-400 mb-2">Roll Number</label>
                             <input
+                                id="onboarding-rollno"
                                 required
                                 type="text"
                                 placeholder="e.g., AIE23000"
@@ -86,8 +88,9 @@ export default function OnboardingPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-bold text-gray-400 mb-2">Date of Birth</label>
+                            <label htmlFor="onboarding-dob" className="block text-sm font-bold text-gray-400 mb-2">Date of Birth</label>
                             <input
+                                id="onboarding-dob"
                                 required
                                 type="date"
                                 className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white"
@@ -105,10 +108,10 @@ export default function OnboardingPage() {
                     </div>
 
                     {/* Profile Pic */}
-                    <div>
-                        <label className="block text-sm font-bold text-gray-400 mb-2">Profile Photo</label>
-                        <input
-                            type="file"
+                    <div>                            <label htmlFor="onboarding-photo" className="block text-sm font-bold text-gray-400 mb-2">Profile Photo</label>
+                            <input
+                                id="onboarding-photo"
+                                type="file"
                             accept="image/*"
                             onChange={e => setImageFile(e.target.files?.[0] || null)}
                             className="w-full bg-black/40 border border-white/10 rounded-lg p-3"

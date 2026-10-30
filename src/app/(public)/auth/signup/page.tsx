@@ -24,7 +24,11 @@ export default function SignupPage() {
         setError("");
         setLoading(true);
 
-        if (!email.endsWith("@av.students.amrita.edu")) {
+        // Normalize: trim + lowercase so "U4...@AV.Students..." still passes validation
+        const normalizedEmail = email.trim().toLowerCase();
+        setEmail(normalizedEmail);
+
+        if (!normalizedEmail.endsWith("@av.students.amrita.edu")) {
             setError("Only @av.students.amrita.edu emails are allowed.");
             setLoading(false);
             return;
@@ -47,14 +51,14 @@ export default function SignupPage() {
             const { createUserWithEmailAndPassword, getAuth } = await import("firebase/auth");
             const { auth } = await import("@/lib/firebase");
 
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
             const user = userCredential.user;
 
             // Send Verification Email
             await sendEmailVerification(user);
 
             // Create User Profile (Not Admin Profile)
-            await createUserProfile(user.uid, email);
+            await createUserProfile(user.uid, normalizedEmail);
 
             router.push("/auth/verify-email");
         } catch (err: any) {
@@ -85,10 +89,11 @@ export default function SignupPage() {
                 <form onSubmit={handleSignup} className="space-y-6">
                     {/* Email Input */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">College Email</label>
+                        <label htmlFor="signup-email" className="text-xs font-bold text-gray-500 uppercase tracking-wider">College Email</label>
                         <div className="relative group">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-red-500 transition-colors" size={18} />
                             <input
+                                id="signup-email"
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -102,10 +107,11 @@ export default function SignupPage() {
 
                     {/* Password Input */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                        <label htmlFor="signup-password" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
                         <div className="relative group">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-red-500 transition-colors" size={18} />
                             <input
+                                id="signup-password"
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -119,10 +125,11 @@ export default function SignupPage() {
 
                     {/* Confirm Password Input */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Confirm Password</label>
+                        <label htmlFor="signup-confirm" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Confirm Password</label>
                         <div className="relative group">
                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-red-500 transition-colors" size={18} />
                             <input
+                                id="signup-confirm"
                                 type="password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -134,14 +141,14 @@ export default function SignupPage() {
                     </div>
 
                     {error && (
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-3">
+                        <div role="alert" className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-start gap-3">
                             <AlertTriangle className="text-red-500 shrink-0" size={18} />
                             <p className="text-red-400 text-xs font-bold">{error}</p>
                         </div>
                     )}
 
                     {/* Terms & Privacy Agreement */}
-                    <label className="flex items-start gap-3 cursor-pointer group">
+                    <label className="flex items-start gap-3 cursor-pointer group flex-wrap">
                         <input
                             type="checkbox"
                             checked={agreedToTerms}

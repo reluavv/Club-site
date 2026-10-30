@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { subscribeToMessages, deleteMessage } from "@/lib/api";
 import { ContactMessage } from "@/types";
-import { MessageSquare, Trash2, Mail, Clock, Search } from "lucide-react";
+import { MessageSquare, Trash2, Mail, Clock, Search, Download } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
+import { convertToCSV } from "@/lib/csvUtils";
 
 export default function MessagesPage() {
     const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -30,28 +32,53 @@ export default function MessagesPage() {
         m.subject.toLowerCase().includes(search.toLowerCase())
     );
 
+    const handleExport = () => {
+        convertToCSV(
+            filteredMessages.map(m => ({
+                Name: m.name,
+                Email: m.email,
+                Subject: m.subject,
+                Message: m.message,
+                ReceivedAt: m.timestamp?.seconds
+                    ? new Date(m.timestamp.seconds * 1000).toLocaleString("en-GB")
+                    : "Unknown",
+            })),
+            "Contact_Messages"
+        );
+    };
+
     if (loading) return <div className="text-white">Loading messages...</div>;
 
     return (
         <div className="max-w-6xl mx-auto text-white">
-            <div className="flex justify-between items-end mb-8 border-b border-white/10 pb-6">
-                <div>
-                    <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                        <MessageSquare className="text-blue-500" /> Inbox
-                    </h1>
-                    <p className="text-gray-400">View and manage messages from the contact form.</p>
-                </div>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search messages..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="bg-black/40 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none w-64"
-                    />
-                </div>
-            </div>
+            <PageHeader
+                title="Inbox"
+                subtitle="View and manage messages from the contact form."
+                icon={<MessageSquare size={26} />}
+                actions={
+                    <>
+                        <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search messages..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="bg-black/40 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none w-64"
+                            aria-label="Search messages"
+                        />
+                        </div>
+                        <button
+                            onClick={handleExport}
+                            disabled={filteredMessages.length === 0}
+                            title="Export filtered messages to CSV"
+                            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-300 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <Download size={16} /> Export CSV
+                        </button>
+                    </>
+                }
+            />
 
             {filteredMessages.length === 0 ? (
                 <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10 border-dashed">

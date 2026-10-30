@@ -1,7 +1,9 @@
 "use client";
 
-import { ClipboardList, MessageSquare, Play, StopCircle, CheckCircle, Trash2, Download } from "lucide-react";
+import { ClipboardList, MessageSquare, Play, StopCircle, CheckCircle, Trash2, Download, FileSpreadsheet } from "lucide-react";
 import DataViewerModal from "@/components/admin/DataViewerModal";
+import Link from "next/link";
+import PageHeader from "@/components/ui/PageHeader";
 import { useState, useEffect } from "react";
 import { getEvents, updateEvent, logActivity, purgeEventData, getEventRegistrations, startAttendance, stopAttendance, getAttendanceCode } from "@/lib/api";
 import { convertToCSV } from "@/lib/csvUtils";
@@ -209,7 +211,11 @@ export default function FormsDashboard() {
 
     return (
         <div className="max-w-6xl mx-auto text-white">
-            <h1 className="text-3xl font-bold mb-8">Forms & Data</h1>
+            <PageHeader
+                title="Forms & Data"
+                subtitle="Registrations, attendance and feedback for every event."
+                icon={<FileSpreadsheet size={26} />}
+            />
 
             {/* Quick Stats / Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -239,7 +245,8 @@ export default function FormsDashboard() {
             </div>
 
             <h2 className="text-2xl font-bold mb-6">Event Lifecycle Manager</h2>
-            <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            {/* overflow-x-auto so narrow screens scroll the table instead of clipping it. */}
+            <div className="bg-white/5 border border-white/10 rounded-xl overflow-x-auto">
                 <table className="w-full text-left">
                     <thead className="bg-white/5 text-gray-400 text-xs uppercase">
                         <tr>
@@ -252,7 +259,19 @@ export default function FormsDashboard() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10">
-                        {loading ? <tr><td colSpan={6} className="p-8 text-center text-gray-500">Loading...</td></tr> : events.map(event => (
+                        {loading ? (
+                            <tr aria-hidden="true"><td colSpan={6} className="p-8">
+                                <div className="space-y-3">
+                                    {Array.from({ length: 4 }).map((_, i) => (
+                                        <div key={i} className="h-10 rounded-lg bg-white/5 animate-pulse" style={{ width: `${96 - i * 7}%` }} />
+                                    ))}
+                                </div>
+                            </td></tr>
+                        ) : events.length === 0 ? (
+                            <tr><td colSpan={6} className="p-10 text-center text-gray-500">
+                                No events yet. Create one from <Link href="/admin/events/new" className="text-blue-400 hover:text-blue-300 underline">Events → New</Link>.
+                            </td></tr>
+                        ) : events.map(event => (
                             <tr key={event.id} className="hover:bg-white/5">
                                 <td className="p-4">
                                     <p className="font-bold">{event.title}</p>
@@ -331,16 +350,18 @@ export default function FormsDashboard() {
                                         onClick={() => handleDownloadCSV(event)}
                                         className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
                                         title="Download All Registrations"
+                                        aria-label={`Download all registrations for ${event.title}`}
                                     >
-                                        <Download size={16} />
+                                        <Download size={16} aria-hidden="true" />
                                     </button>
 
                                     <button
                                         onClick={() => setActiveModal('feedbacks')}
                                         className="p-2 text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
                                         title="View Feedback"
+                                        aria-label={`View feedback submissions (opens the feedback viewer)`}
                                     >
-                                        <MessageSquare size={16} />
+                                        <MessageSquare size={16} aria-hidden="true" />
                                     </button>
 
                                     {profile?.role === 'CTO' && (
@@ -355,8 +376,9 @@ export default function FormsDashboard() {
                                             }}
                                             className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                                             title="Purge Data (Keep Rating)"
+                                            aria-label={`Purge data for ${event.title} (keeps final rating)`}
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={16} aria-hidden="true" />
                                         </button>
                                     )}
                                 </td>

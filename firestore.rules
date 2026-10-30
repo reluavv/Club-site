@@ -18,9 +18,9 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role;
     }
 
+    // Role names live in club_roles, so any approved admin counts. Only the CTO can set roles.
     function isAdmin() {
-      return isAuthenticated() && adminRole() in ['admin', 'super_admin', 'President', 'VP_AIML', 'VP_DSA', 'CTO',
-                                                  'AdminHead', 'PRHead', 'Treasurer', 'Mentor', 'Faculty', 'Activator'];
+      return isAuthenticated() && adminRole() != 'pending';
     }
 
     function isCTO() {
@@ -133,6 +133,12 @@ service cloud.firestore {
     match /feedbacks/{document} {
       allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow write: if isAdmin();
+    }
+
+    // Club roles shown on the team pages. Public to read, edited by the CTO.
+    match /club_roles/{roleId} {
+      allow read: if true;
+      allow write: if isCTO();
     }
 
     match /settings/{docId} {

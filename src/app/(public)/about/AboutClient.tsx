@@ -5,54 +5,28 @@ import TeamMember from "@/components/ui/TeamMember";
 import Image from "next/image";
 import { useMemo } from "react";
 import { User } from "lucide-react";
+import { ClubRole, DEFAULT_ROLE_ID, roleLabel, roleRank } from "@/lib/roles";
 
 interface AboutClientProps {
     team: AdminProfile[];
+    roles: ClubRole[];
 }
 
-const HIERARCHY: Record<string, number> = {
-    "Faculty": 1,
-    "Mentor": 2,
-    "President": 3,
-    "VP_AIML": 4,
-    "VP_DSA": 4,
-    "AdminHead": 5,
-    "PRHead": 6,
-    "CTO": 7,
-    "Treasurer": 8,
-    "Activator": 99
-};
-
-const ROLE_LABELS: Record<string, string> = {
-    "Faculty": "Faculty Coordinator",
-    "Mentor": "Mentor",
-    "President": "President",
-    "VP_AIML": "Vice President (AIML)",
-    "VP_DSA": "Vice President (DSA)",
-    "AdminHead": "Administrative Head",
-    "PRHead": "PR Head",
-    "CTO": "Chief Technology Officer",
-    "Treasurer": "Treasurer",
-    "Activator": "Activator"
-};
-
-export default function AboutClient({ team }: AboutClientProps) {
+export default function AboutClient({ team, roles }: AboutClientProps) {
     const { coreTeam, activators } = useMemo(() => {
         const sorted = [...team].sort((a, b) => {
-            const rankA = HIERARCHY[a.role] || 999;
-            const rankB = HIERARCHY[b.role] || 999;
-            return rankA - rankB;
+            return roleRank(roles, a.role) - roleRank(roles, b.role);
         });
 
-        const core = sorted.filter(u => u.role !== "Activator");
-        const acts = sorted.filter(u => u.role === "Activator");
+        const core = sorted.filter(u => u.role !== DEFAULT_ROLE_ID);
+        const acts = sorted.filter(u => u.role === DEFAULT_ROLE_ID);
 
         return { coreTeam: core, activators: acts };
-    }, [team]);
+    }, [team, roles]);
 
     const mapToMember = (u: AdminProfile) => ({
         name: u.displayName || "Member",
-        role: ROLE_LABELS[u.role] || u.role,
+        role: roleLabel(roles, u.role),
         image: u.photoURL || "", // Empty string triggers fallback in component
         links: {
             linkedin: u.socials?.linkedin,
@@ -65,12 +39,15 @@ export default function AboutClient({ team }: AboutClientProps) {
     return (
         <div className="about-section min-h-screen pt-32 md:pt-36 pb-20 relative z-[1]">
 
+            {/* SR-only page heading for screen readers */}
+            <h1 className="sr-only">About ReLU — Core Team &amp; Founders</h1>
+
             {/* CORE TEAM */}
             {coreTeam.length > 0 && (
                 <>
-                    <h1 className="section-title text-center text-4xl md:text-[3rem] mb-12 md:mb-[4rem] text-white uppercase tracking-[5px] md:tracking-[10px] font-bold animate-[aurora_8s_linear_infinite] relative break-words px-4">
+                    <h2 className="section-title text-center text-4xl md:text-[3rem] mb-12 md:mb-[4rem] text-white uppercase tracking-[5px] md:tracking-[10px] font-bold animate-[aurora_8s_linear_infinite] relative break-words px-4">
                         Core Team
-                    </h1>
+                    </h2>
                     <div className="max-w-7xl mx-auto px-4 mb-24">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center">
                             {coreTeam.map(u => (
@@ -84,10 +61,10 @@ export default function AboutClient({ team }: AboutClientProps) {
             {/* ACTIVATORS */}
             {activators.length > 0 && (
                 <>
-                    <h1 className="section-title text-center text-4xl md:text-[3rem] mb-12 md:mb-[4rem] text-white uppercase tracking-[5px] md:tracking-[10px] font-bold animate-[aurora_8s_linear_infinite] relative break-words px-4">
+                    <h2 className="section-title text-3xl md:text-[2.5rem] mb-12 md:mb-[4rem] text-white uppercase tracking-[5px] md:tracking-[10px] font-bold animate-[aurora_8s_linear_infinite] relative break-words px-4">
                         Activators
-                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-tr from-[#0099ff1a] via-[#0044ff1a] to-[#00ccff1a] blur-[40px] rounded-full -z-10 animate-[titleGlow_4s_ease-in-out_infinite pointer-events-none]" />
-                    </h1>
+                        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-tr from-[#0099ff1a] via-[#0044ff1a]                        to-[#00ccff1a] blur-[40px] rounded-full -z-10 animate-[titleGlow_4s_ease-in-out_infinite pointer-events-none]" />
+                    </h2>
                     <div className="max-w-5xl mx-auto px-4 mb-24">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {activators.map(u => (
@@ -103,9 +80,9 @@ export default function AboutClient({ team }: AboutClientProps) {
             )}
 
             {/* FOUNDERS - Legacy Section */}
-            <h1 className="section-title mt-24 text-center text-4xl md:text-[3rem] mb-12 text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 uppercase tracking-[5px] md:tracking-[10px] font-bold relative px-4">
+            <h2 className="section-title mt-24 text-3xl md:text-[2.5rem] mb-12 text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 uppercase tracking-[5px] md:tracking-[10px] font-bold relative px-4 text-center">
                 The Founders
-            </h1>
+            </h2>
             <div className="max-w-7xl mx-auto px-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
                     {[

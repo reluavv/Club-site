@@ -4,28 +4,24 @@ import { AdminProfile, PendingRegistration } from "@/types";
 import { logActivity } from "./audit";
 import { deleteUserData } from "./users";
 import { isPasswordStrong } from "@/lib/schemas";
+import { ClubRole, CTO_ROLE, DEFAULT_ROLE_ID, DEFAULT_ROLES } from "@/lib/roles";
 
 // --- Constants ---
 const TENURE_DURATION_MS = 2 * 365 * 24 * 60 * 60 * 1000; // 2 Years
 
-const ROLE_LIMITS: Record<string, number> = {
-    "President": 1,
-    "VP_AIML": 1,
-    "VP_DSA": 1,
-    "AdminHead": 1,
-    "PRHead": 1,
-    "CTO": 1,
-    "Treasurer": 1,
-    "Mentor": 3,
-    "Faculty": 2,
-    "Activator": Infinity
-};
-
 // --- Helpers ---
 
 async function checkRoleLimit(role: string): Promise<boolean> {
-    const limit = ROLE_LIMITS[role];
-    if (limit === undefined || limit === Infinity) return true;
+    let limit: number | null;
+    if (role === CTO_ROLE.id) {
+        limit = CTO_ROLE.limit;
+    } else {
+        const snap = await getDoc(doc(db, "club_roles", role));
+        const def = snap.exists() ? snap.data() as ClubRole : DEFAULT_ROLES.find(r => r.id === role);
+        if (!def) throw new Error(`Unknown role: ${role}`);
+        limit = def.limit;
+    }
+    if (limit === null) return true;
 
     const q = query(collection(db, "admins"), where("role", "==", role), where("status", "==", "active"));
     const snapshot = await getCountFromServer(q);
@@ -117,6 +113,21 @@ export async function updateAdminRole(uid: string, role: string, actorUid?: stri
 
     if (actorUid) {
         await logActivity(actorUid, actorName || "Unknown", "UPDATE_ROLE", { targetUid: uid, newRole: role });
+    }
+}
+
+// Gives a full role to targetUid and moves its current holder back to the default role, in one step.
+export async function replaceRoleHolder(targetUid: string, replacedUid: string, role: string, actorUid?: string, actorName?: string) {
+    if (role === CTO_ROLE.id) throw new Error("Use the Doomsday console to hand over the CTO role.");
+    await runTransaction(db, async (transaction) => {
+        const replacedRef = doc(db, "admins", replacedUid);
+        const replaced = await transaction.get(replacedRef);
+        if (replaced.data()?.role !== role) throw new Error("That member no longer holds this role. Refresh and try again.");
+        transaction.update(replacedRef, { role: DEFAULT_ROLE_ID });
+        transaction.update(doc(db, "admins", targetUid), { role });
+    });
+    if (actorUid) {
+        await logActivity(actorUid, actorName || "Unknown", "REPLACE_ROLE", { role, targetUid, replacedUid });
     }
 }
 

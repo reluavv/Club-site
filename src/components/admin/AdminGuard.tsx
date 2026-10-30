@@ -33,6 +33,15 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, loading, pathname, router]);
 
+    // The first-account setup and the super_admin migration only set the role, so a CTO
+    // could end up with no status and be left out of every team list.
+    useEffect(() => {
+        if (user && profile?.role === "CTO" && !profile.status) {
+            import("@/lib/api").then(api => api.updateAdminProfileData(user.uid, { status: "active" }))
+                .catch((err: Error) => console.error("Could not set CTO status:", err));
+        }
+    }, [user, profile]);
+
     // Public auth pages
     if (pathname === "/admin/login" || pathname === "/admin/signup") {
         if (user) {
@@ -104,16 +113,8 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         );
     }
 
-    // Check Allowed Roles
-    // All specialized roles (President, CTO, etc.) are allowed as long as they are active.
-    // Tenure is enforced by checkTenure() in useAuth().
-    const allowedRoles = [
-        "President", "VP_AIML", "VP_DSA", "CTO", "AdminHead",
-        "PRHead", "Treasurer", "Mentor", "Faculty", "Activator",
-        "admin"
-    ];
-
-    if (allowedRoles.includes(profile?.role || "")) {
+    // Any approved role may enter (pending was handled above). Tenure is enforced by checkTenure() in useAuth().
+    if (profile?.role) {
         return <>{children}</>;
     }
 
