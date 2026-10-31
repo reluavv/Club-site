@@ -1,0 +1,21 @@
+[
+    {
+        "origin": [
+            "https://relu-website-service-735268143198.us-central1.run.app",
+            "https://relu.club",
+            "http://localhost:3000"
+        ],
+        "method": [
+            "GET",
+            "HEAD",
+            "PUT",
+            "POST",
+            "DELETE"
+        ],
+        "responseHeader": [
+            "Content-Type",
+            "x-goog-resumable"
+        ],
+        "maxAgeSeconds": 3600
+    }
+]

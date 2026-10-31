@@ -1,0 +1,63 @@
+Rules version: 2
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions for auth and roles
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Load the role from the admins/{uid} document since it's not in the auth token
+    function getRole() {
+      let roleDoc = get(/databases/(database)/documents/admins/(request.auth.uid));
+      return roleDoc.data.role;
+    }
+
+    function isCTO() {
+      return isAuthenticated() &&
+             exists(/databases/(database)/documents/admins/(request.auth.uid)) &&
+             getRole() == "CTO";
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+             exists(/databases/(database)/documents/admins/(request.auth.uid)) &&
+             getRole() != "pending";
+    }
+
+    // Declare these collections (they exist in production)
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      // Note: writes are client-side to the specific admin document
+    }
+
+    match /registrations/{registrationId} {
+      allow read: if isAuthenticated();
+      // Note: write only allowed for specific admin via registration-specific path
+    }
+
+    match /club_roles/{roleId} {
+      allow read: if true;
+      allow write: if isCTO();
+    }
+
+    match /settings/{docId} {
+      allow read: if isAdmin();
+      allow write: if isCTO();
+    }
+
+    match /event_images/{imageId} {
+      allow read: if isAdmin();
+      allow write: if isCTO();
+    }
+
+    match /resource_images/{imageId} {
+      allow read: if isAuthenticated();
+      allow write: if isCTO();
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isCTO();
+      allow write: if isCTO();
+    }
+  }
+}

@@ -1,0 +1,286 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+
+    /* ---- ReLU design tokens ---- */
+    /* Surfaces: layered blacks; borders: hairlines; accent: blue→purple brand gradient. */
+    --surface: 255 255 255 / 0.05;
+    --surface-raised: 255 255 255 / 0.1;
+    --hairline: 255 255 255 / 0.1;
+    --accent: #6366f1; /* matches :focus-visible outline */
+}
+
+body {
+    color: rgb(var(--foreground-rgb));
+    background: linear-gradient(to bottom,
+            transparent,
+            rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    position: relative;
+    /* font-family handled by Tailwind utility via layout.tsx variable */
+}
+
+
+/* --- Legacy Styles from styles.css --- */
+/* Kept minimal as we are moving towards Tailwind / React components */
+
+/* Keyframes for arbitrary animations if not covered by Tailwind config */
+@keyframes twinkle {
+
+    0%,
+    100% {
+        opacity: 0.2;
+        transform: scale(0.8);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes shooting {
+    0% {
+        transform: translateX(-200px) translateY(-100px) rotate(35deg);
+        opacity: 0;
+    }
+
+    15% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateX(calc(100vw + 200px)) translateY(calc(100vh + 100px)) rotate(35deg);
+        opacity: 0;
+    }
+}
+
+/* Star classes used by StarBackground.tsx */
+.stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle var(--duration) ease-in-out infinite;
+}
+
+.star.small {
+    width: 1px;
+    height: 1px;
+}
+
+.star.medium {
+    width: 2px;
+    height: 2px;
+}
+
+.star.large {
+    width: 3px;
+    height: 3px;
+}
+
+.shooting-star {
+    position: absolute;
+    width: 150px;
+    height: 2px;
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.4) 25%,
+            rgba(255, 255, 255, 0.8) 50%,
+            rgba(255, 255, 255, 0.4) 75%,
+            rgba(255, 255, 255, 0) 100%);
+    animation: shooting 2.5s ease-out infinite;
+    transform: rotate(35deg);
+    opacity: 0;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+}
+
+/* --- Custom Scrollbar --- */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 5px;
+    border: 2px solid #050505;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+::-webkit-scrollbar-corner {
+    background: #050505;
+}
+
+/* Firefox Support */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: #333 #050505;
+}
+
+/* Utility class for specific containers */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* --- Accessibility: Reduced Motion --- */
+@media (prefers-reduced-motion: reduce) {
+    .star,
+    .shooting-star {
+        animation: none !important;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* --- Accessibility: Skip Link --- */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    z-index: 999;
+    padding: 12px 24px;
+    background: #1a1a2e;
+    color: #fff;
+    border: 2px solid #6366f1;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+    top: 16px;
+}
+
+.lucide-fix:-moz-focusring {
+outline: 0;
+}
+
+/* ---- Design system primitives (@layer components) ---- */
+@layer components {
+    /* Card surfaces: one vocabulary for every panel in the app. */
+    .surface {
+        @apply bg-white/5 border border-white/10 rounded-2xl;
+    }
+    .surface-raised {
+        @apply bg-white/10 border border-white/15 rounded-2xl shadow-lg shadow-black/30;
+    }
+    .section-pad {
+        @apply py-16 md:py-20 px-4 sm:px-6;
+    }
+
+    /* Chips/badges */
+    .chip {
+        @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border;
+    }
+
+    /* Buttons: single radius (rounded-xl), shared heights, states and focus. */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl font-bold whitespace-nowrap
+            transition-all duration-200 focus-visible:ring-2 focus-visible:ring-blue-400
+            disabled:opacity-60 disabled:cursor-not-allowed;
+    }
+    .btn-sm { @apply px-3 py-1.5 text-xs; }
+    .btn-md { @apply px-5 py-2.5 text-sm; }
+    .btn-lg { @apply px-8 py-3.5 text-base; }
+    .btn-primary {
+        @apply text-white bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-600/25
+            hover:from-blue-500 hover:to-purple-500 hover:shadow-xl hover:shadow-indigo-600/30
+            hover:-translate-y-0.5 active:translate-y-0;
+    }
+    .btn-secondary {
+        @apply text-white bg-white/5 border border-white/15 backdrop-blur-sm
+            hover:bg-white/10 hover:border-white/25 hover:-translate-y-0.5 active:translate-y-0;
+    }
+    .btn-ghost {
+        @apply text-gray-300 hover:text-white hover:bg-white/5;
+    }
+    .btn-danger {
+        @apply text-red-400 bg-red-500/10 border border-red-500/25 hover:bg-red-500/20 hover:text-red-300;
+    }
+
+    /* Inputs: matched heights with buttons; visible focus; readable placeholder. */
+    .input {
+        @apply w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm
+            placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/60;
+    }
+    .input-icon { @apply pl-10; }
+    .select {
+        @apply w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm
+            focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/60 appearance-none cursor-pointer;
+    }
+    .label {
+        @apply block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2;
+    }
+
+    /* Section headers for public pages: consistent eyebrow + title rhythm. */
+    .eyebrow {
+        @apply text-xs font-bold uppercase tracking-[0.25em] text-blue-400 text-center;
+    }
+    .section-title {
+        @apply text-3xl md:text-4xl font-bold text-white tracking-tight text-center;
+    }
+}
+
+/* --- Accessibility: Focus Visible --- */
+*:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+    border-radius: 4px;
+}

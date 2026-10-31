@@ -1,0 +1,51 @@
+{
+    "name": "relu-website",
+    "version": "0.6.3",
+    "private": true,
+    "engines": {
+        "node": "22.x"
+    },
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "eslint .",
+        "test:rules": "npx -y firebase-tools@14.26.0 emulators:exec --only firestore,storage --project demo-relu \"node --test tests/rules.test.mjs\"",
+        "test:unit": "node --test tests/normalizeEmail.test.mjs tests/firestoreDatabaseId.test.mjs tests/rateLimit.test.mjs"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.1157.0",
+        "firebase": "^12.6.0",
+        "firebase-admin": "^14.3.0",
+        "jspdf": "^4.2.1",
+        "jspdf-autotable": "^5.0.9",
+        "lucide-react": "^0.577.0",
+        "next": "^16.4.3",
+        "nodemailer": "^10.2.1",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1",
+        "react-markdown": "^10.1.0",
+        "sharp": "^0.35.5",
+        "zod": "^4.6.7"
+    },
+    "overrides": {
+        "jwks-rsa": {
+            "jose": "^5.10.0"
+        }
+    },
+    "devDependencies": {
+        "@firebase/rules-unit-testing": "^5.0.2",
+        "@opennextjs/cloudflare": "1.20.12",
+        "@types/node": "^20",
+        "@types/nodemailer": "^8.0.2",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "autoprefixer": "^10.4.19",
+        "eslint": "^9.39.5",
+        "eslint-config-next": "^16.4.3",
+        "postcss": "^8",
+        "tailwindcss": "^3.4.1",
+        "typescript": "^5",
+        "wrangler": "4.148.0"
+    }
+}
