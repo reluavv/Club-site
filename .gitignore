@@ -1,0 +1,48 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# local env files
+.env*.local
+<<<<<<< HEAD
+.env.local*
+.env.local1
+
+# emulator debug logs
+firestore-debug.log
+=======
+>>>>>>> parent of f1174c0 (Full admin UI finalization: email normalization with race-safe duplicate guard, lazy image loading, lossless B2 gallery migration)
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+
+# Freebuff Sites build artifacts
+freebuff-sites-build/
+
+# build logs
+build.log
